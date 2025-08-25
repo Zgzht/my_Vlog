@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的最简博客</title>
+  <meta name="description" content="计算机专业学生的极简个人博客">
+  <style>
+    :root{
+      --bg: #0b0b12;
+      --fg: #e9e9ee;
+      --muted:#a3a3b2;
+      --card:#14141f;
+      --brand:#6d96ff;
+      --accent:#96f;
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 80% -10%, rgba(150,102,255,.12), transparent 40%),
+                  radial-gradient(1000px 500px at -10% 10%, rgba(109,150,255,.12), transparent 35%), var(--bg);
+      color:var(--fg);
+      letter-spacing:.1px;
+    }
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:860px;margin:0 auto;padding:28px 20px 64px}
+    header{
+      display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:40px;height:40px;border-radius:50%;
+      background: linear-gradient(135deg,var(--brand),var(--accent));
+      box-shadow:0 6px 20px rgba(150,102,255,.35);
+    }
+    .title{font-size:20px;font-weight:700}
+    .bio{color:var(--muted);font-size:14px;margin-top:2px}
+    nav a{margin-right:14px}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.06);
+      padding:18px 18px 16px;border-radius:var(--radius);
+      box-shadow:0 10px 24px rgba(0,0,0,.25);
+    }
+    .post-list{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
+    .post-title{margin:0 0 6px;font-size:20px}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
+    .tag{display:inline-block;font-size:12px;padding:.5px 8px;border-radius:999px;background:rgba(150,102,255,.15);margin-right:6px}
+    .preview{color:#d6d6df}
+    article{margin-top:14px}
+    article h1{font-size:28px;margin:0 0 4px}
+    article h2{font-size:22px;margin:18px 0 6px}
+    article h3{font-size:18px;margin:14px 0 6px}
+    article p, article li{color:#dfe0ea}
+    article pre{background:#0e0e15;border:1px solid rgba(255,255,255,.06);padding:14px;border-radius:12px;overflow:auto}
+    article code{background:#11111a;padding:2px 6px;border-radius:6px}
+    footer{margin-top:40px;color:var(--muted);font-size:13px}
+    .back{display:inline-flex;align-items:center;gap:6px}
+    .links a{margin-right:10px}
+    @media (prefers-color-scheme: light){
+      :root{--bg:#f7f7fb;--fg:#0b0b12;--muted:#5b5b6a;--card:#fff}
+      body{background:var(--bg)}
+      .card{background:#fff;border-color:#eef}
+      .preview, article p, article li{color:#2a2a33}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title" id="site-title">我的最简博客</div>
+          <div class="bio" id="site-bio">计算机专业学生，记录学习与生活。</div>
+        </div>
+      </div>
+      <nav class="links" id="site-links"></nav>
+    </header>
+
+    <main id="app"></main>
+
+    <footer>
+      <span id="site-footer"></span>
+    </footer>
+  </div>
+
+  <script>
+  // ====== 1) 站点配置（按需改成你自己的） ======
+  const SITE = {
+    title: "你的名字的博客",
+    author: "你的名字",
+    bio: "计算机专业学生，记录所学所悟。",
+    links: [
+      { text: "GitHub", href: "https://github.com/yourname" },
+      { text: "Email", href: "mailto:you@example.com" }
+    ],
+    footer: "© " + new Date().getFullYear() + " 你的名字 · Powered by a single HTML file"
+  };
+
+  // ====== 2) 文章内容（最小可用：直接写 HTML 字符串） ======
+  // 提示：复制下面对象，改 slug/title/date/html 即可写新文章
+  const POSTS = [
+    {
+      slug: "hello-world",
+      title: "Hello, World",
+      date: "2025-08-26",
+      tags: ["随笔"],
+      html: `
+        <p>这是你的第一篇文章。本站完全由一个 <code>index.html</code> 文件驱动：无构建工具、无依赖，双击就能打开。</p>
+        <p>后续你可以把内容迁移到 Markdown 或接入评论 / RSS / 统计，但<strong>先完成再完善</strong>。</p>
+        <pre><code>// TODO: 把这段换成你的内容
+function greet(name){ return "Hello, " + name; }
+console.log(greet("blog"));</code></pre>
+      `
+    },
+    {
+      slug: "minimal-architecture",
+      title: "最小博客架构说明",
+      date: "2025-08-26",
+      tags: ["技术"],
+      html: `
+        <h3>为什么用「单文件」？</h3>
+        <ul>
+          <li>部署简单：把 <code>index.html</code> 丢到 GitHub Pages 就能上线。</li>
+          <li>可维护：只有一个入口，初学阶段不被工具链拖慢。</li>
+          <li>可演进：后续随时替换为 Markdown 渲染或静态站点生成器。</li>
+        </ul>
+        <h3>目录结构</h3>
+        <pre><code>my-blog/
+└─ index.html   # 就这一个文件，所有逻辑/样式/内容都在这里</code></pre>
+        <p>写文章时在 <code>POSTS</code> 数组里复制一份，改字段即可。</p>
+      `
+    }
+  ];
+
+  // ====== 3) 工具函数 ======
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const escapeHTML = (s) => s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const stripTags = (html) => {
+    const tmp = document.createElement('div'); tmp.innerHTML = html; return tmp.textContent || tmp.innerText || "";
+  };
+  const fmtDate = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('zh-CN', {year:'numeric', month:'2-digit', day:'2-digit'});
+  const readingTime = (html) => {
+    const words = stripTags(html).trim().split(/\s+/).filter(Boolean).length;
+    const mins = Math.max(1, Math.round(words / 400));
+    return mins + " 分钟阅读";
+  };
+
+  // ====== 4) 视图渲染 ======
+  function renderList() {
+    const app = $("#app");
+    const sorted = [...POSTS].sort((a,b) => b.date.localeCompare(a.date));
+    app.innerHTML = `
+      <section class="card">
+        <h2 style="margin:0 0 6px">最新文章</h2>
+        <div class="post-list">
+          ${sorted.map(p => {
+            const preview = stripTags(p.html).slice(0, 140) + (stripTags(p.html).length > 140 ? "…" : "");
+            return `
+              <article class="card" style="padding:14px">
+                <h3 class="post-title"><a href="#/post/${encodeURIComponent(p.slug)}">${escapeHTML(p.title)}</a></h3>
+                <div class="meta">${fmtDate(p.date)} · ${readingTime(p.html)} · ${(p.tags||[]).map(t => '<span class="tag">'+escapeHTML(t)+'</span>').join('')}</div>
+                <div class="preview">${escapeHTML(preview)}</div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+  }
+
+  function renderPost(slug) {
+    const app = $("#app");
+    const p = POSTS.find(x => x.slug === slug);
+    if(!p){ app.innerHTML = '<div class="card">未找到该文章。<br><a class="back" href="#/">← 返回列表</a></div>'; return; }
+    app.innerHTML = `
+      <article class="card">
+        <a class="back" href="#/">← 返回列表</a>
+        <h1>${escapeHTML(p.title)}</h1>
+        <div class="meta">${fmtDate(p.date)} · ${readingTime(p.html)} · ${(p.tags||[]).map(t => '<span class="tag">'+escapeHTML(t)+'</span>').join('')}</div>
+        <div class="content">${p.html}</div>
+      </article>
+    `;
+  }
+
+  function route(){
+    const h = location.hash;
+    if(h.startsWith("#/post/")){
+      const slug = decodeURIComponent(h.replace("#/post/",""));
+      renderPost(slug);
+    }else{
+      renderList();
+    }
+  }
+
+  // ====== 5) 初始化站点信息 ======
+  function initSite(){
+    $("#site-title").textContent = SITE.title;
+    $("#site-bio").textContent = SITE.bio;
+    $("#site-footer").textContent = SITE.footer;
+    const links = SITE.links.map(l => `<a href="${l.href}" target="_blank" rel="noopener">${escapeHTML(l.text)}</a>`).join('');
+    $("#site-links").innerHTML = links;
+    document.title = SITE.title;
+  }
+
+  window.addEventListener("hashchange", route);
+  initSite(); route();
+  </script>
+</body>
+</html>
