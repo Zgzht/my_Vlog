@@ -113,6 +113,27 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
   <script>
+const CLOUDINARY = { cloud: "blog_unsigned", preset: "blog_unsigned" };
+
+// 覆盖原“上传图片到存储并插入链接”按钮行为：
+document.getElementById('btnUploadImg').onclick = async () => {
+  const f = document.getElementById('imgFile').files[0];
+  if (!f) return alert('请选择图片');
+  const form = new FormData();
+  form.append('file', f);
+  form.append('upload_preset', CLOUDINARY.preset);
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloud}/image/upload`, {
+    method: 'POST', body: form
+  });
+  const data = await r.json();
+  if (!data.secure_url) return alert('上传失败：' + JSON.stringify(data));
+  const ta = document.getElementById('content');
+  ta.value += `\n<p><img src="${data.secure_url}" alt=""/></p>\n`;
+  document.getElementById('imgMsg').textContent = '已上传并插入链接（Cloudinary）';
+  setTimeout(()=> document.getElementById('imgMsg').textContent='', 1500);
+};
+</script>
+<script>
   // 1) 替换为你的 Firebase 配置（Firebase 控制台 > 项目设置 > 常规 > 你的应用(Web)）
   const firebaseConfig = {
     apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
@@ -123,7 +144,7 @@
     appId: "1:256096740039:web:875a84e72fb0858354d4e2",
     measurementId: "G-K4V7F81R9W"
   };
-  const ADMIN_UIDS = ["YOUR_UID_HERE"]; // 把你的 UID 放进来（登录一次后在页面“当前 UID”可见）
+  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 把你的 UID 放进来（登录一次后在页面“当前 UID”可见）
 
   // 2) 初始化服务
   firebase.initializeApp(firebaseConfig);
