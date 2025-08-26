@@ -307,7 +307,7 @@
   const firebaseConfig = { apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo", authDomain: "project-9037683069333256481.firebaseapp.com", projectId: "project-9037683069333256481", appId: "1:256096740039:web:875a84e72fb0858354d4e2" };
   const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 提示用途（真正权限由 Firestore 规则控制）
   // 2) Cloudinary（免绑卡）
-  const CLOUDINARY = { cloudName: "YOUR_CLOUD_NAME", unsignedPreset: "blog_unsigned" };
+  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
 
   firebase.initializeApp(firebaseConfig);
   const auth=firebase.auth(); const db=firebase.firestore();
@@ -449,7 +449,7 @@
   const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 允许发布的人
 
   // 2) Cloudinary（免绑卡）
-  const CLOUDINARY = { cloudName: "YOUR_CLOUD_NAME", unsignedPreset: "blog_unsigned" };
+  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
 
   // 3) 初始化
   firebase.initializeApp(firebaseConfig);
