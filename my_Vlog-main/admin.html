@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>作者后台 · 登录 / 资料 / 写作 / 发布</title>
+  <style>
+    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--card:#14141f;--brand:#6d96ff;--ok:#30d158;--warn:#ff9f0a;--err:#ff453a;--r:16px}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+    a{color:var(--brand)}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);border-radius:var(--r);padding:16px;margin-bottom:16px}
+    input,textarea,select,button{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f0f17;color:var(--fg)}
+    button{cursor:pointer}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .muted{color:var(--muted)}
+    .danger{background:#2a0f12;border-color:#4d1519}
+    .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .right{margin-left:auto}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#1a1a24;color:#cfd3ff;font-size:12px;margin-left:6px}
+    img.avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.15)}
+    .list{display:grid;gap:8px}
+    .post{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px;border:1px dashed rgba(255,255,255,.12);border-radius:12px}
+    .post .meta{color:var(--muted);font-size:12px}
+    .btn{padding:8px 10px;border-radius:10px;background:#1e1e2a;border:1px solid rgba(255,255,255,.15)}
+    .btn.ok{background:#113116;border-color:#245a2c}
+    .btn.warn{background:#3a2a11;border-color:#6c4f1e}
+    .btn.err{background:#3a1411;border-color:#6c241e}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h2>作者后台</h2>
+      <div id="authArea" class="flex">
+        <span id="who" class="muted">未登录</span>
+        <button id="btnGitHub" class="btn">GitHub 登录</button>
+        <button id="btnEmailLogin" class="btn">邮箱登录</button>
+        <button id="btnLogout" class="btn hidden">退出</button>
+      </div>
+    </header>
+
+    <section id="gate" class="card">
+      <b>权限说明</b>
+      <p class="muted">只有在 <code>ADMIN_UIDS</code> 里的账号才能进行写作与发布；其他登录用户仅能查看自己的资料。</p>
+      <div class="muted">当前 UID：<code id="curUid">-</code></div>
+    </section>
+
+    <section id="profile" class="card hidden">
+      <h3>个人资料</h3>
+      <div class="flex" style="margin:8px 0">
+        <img id="avatar" class="avatar" alt="avatar" src=""/>
+        <input type="file" id="avatarFile" accept="image/*" style="max-width:280px"/>
+        <button id="btnSaveAvatar" class="btn">上传头像</button>
+      </div>
+      <div class="row">
+        <div>
+          <label>显示名称</label>
+          <input id="displayName" placeholder="你的名字"/>
+        </div>
+        <div>
+          <label>邮箱（只读）</label>
+          <input id="email" disabled/>
+        </div>
+      </div>
+      <label>个人简介 / 简历摘要</label>
+      <textarea id="bio" rows="4" placeholder="一句话介绍或简历摘要"></textarea>
+      <div class="flex" style="margin-top:8px">
+        <button id="btnSaveProfile" class="btn ok">保存资料</button>
+        <span id="profMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="editor" class="card hidden">
+      <h3>创作 / 草稿</h3>
+      <div class="row">
+        <div>
+          <label>标题</label>
+          <input id="title"/>
+        </div>
+        <div>
+          <label>标签（逗号分隔）</label>
+          <input id="tags" placeholder="tech, 随笔"/>
+        </div>
+      </div>
+      <label>正文（支持 HTML；可粘贴图片链接或用下面“上传图片”生成 URL）</label>
+      <textarea id="content" rows="10" placeholder="<p>正文...</p>"></textarea>
+      <div class="flex" style="margin-top:8px">
+        <input type="file" id="imgFile" accept="image/*" style="max-width:300px"/>
+        <button id="btnUploadImg" class="btn">上传图片到存储并插入链接</button>
+        <span id="imgMsg" class="muted"></span>
+      </div>
+      <div class="flex" style="margin-top:8px">
+        <button id="btnSaveDraft" class="btn ok">保存草稿</button>
+        <button id="btnClear" class="btn warn">清空</button>
+        <span id="editMsg" class="muted"></span>
+      </div>
+    </section>
+
+    <section id="manage" class="card hidden">
+      <h3>我的文章</h3>
+      <div id="myPosts" class="list"></div>
+    </section>
+  </div>
+
+  <!-- Firebase v10 CDN -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+
+  <script>
+const CLOUDINARY = { cloud: "blog_unsigned", preset: "blog_unsigned" };
+
+// 覆盖原“上传图片到存储并插入链接”按钮行为：
+document.getElementById('btnUploadImg').onclick = async () => {
+  const f = document.getElementById('imgFile').files[0];
+  if (!f) return alert('请选择图片');
+  const form = new FormData();
+  form.append('file', f);
+  form.append('upload_preset', CLOUDINARY.preset);
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloud}/image/upload`, {
+    method: 'POST', body: form
+  });
+  const data = await r.json();
+  if (!data.secure_url) return alert('上传失败：' + JSON.stringify(data));
+  const ta = document.getElementById('content');
+  ta.value += `\n<p><img src="${data.secure_url}" alt=""/></p>\n`;
+  document.getElementById('imgMsg').textContent = '已上传并插入链接（Cloudinary）';
+  setTimeout(()=> document.getElementById('imgMsg').textContent='', 1500);
+};
+</script>
+<script>
+  // 1) 替换为你的 Firebase 配置（Firebase 控制台 > 项目设置 > 常规 > 你的应用(Web)）
+  const firebaseConfig = {
+    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
+    authDomain: "project-9037683069333256481.firebaseapp.com",
+    projectId: "project-9037683069333256481",
+    storageBucket: "project-9037683069333256481.firebasestorage.app",
+    messagingSenderId: "256096740039",
+    appId: "1:256096740039:web:875a84e72fb0858354d4e2",
+    measurementId: "G-K4V7F81R9W"
+  };
+  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 把你的 UID 放进来（登录一次后在页面“当前 UID”可见）
+
+  // 2) 初始化服务
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
+  // 3) UI 元素
+  const $ = (s,root=document)=>root.querySelector(s);
+  const who=$('#who'),curUid=$('#curUid');
+  const gate=$('#gate'),profile=$('#profile'),editor=$('#editor'),manage=$('#manage');
+
+  // 4) 登录/登出
+  $('#btnGitHub').onclick = async()=>{
+    const provider = new firebase.auth.GithubAuthProvider();
+    try{ await auth.signInWithPopup(provider);}catch(e){alert('GitHub 登录失败: '+e.message)}
+  };
+  $('#btnEmailLogin').onclick = async()=>{
+    const email = prompt('邮箱:'); if(!email) return;
+    const pass = prompt('密码（首次会自动注册）:'); if(!pass) return;
+    try{
+      await auth.signInWithEmailAndPassword(email, pass);
+    }catch(e){
+      if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass); }
+      else alert('邮箱登录失败: '+e.message);
+    }
+  };
+  $('#btnLogout').onclick = ()=>auth.signOut();
+
+  // 5) 监听登录状态
+  auth.onAuthStateChanged(async user=>{
+    const logged = !!user; curUid.textContent = logged ? user.uid : '-';
+    who.textContent = logged ? (user.displayName||user.email||user.uid) : '未登录';
+    $('#btnLogout').classList.toggle('hidden', !logged);
+    $('#btnGitHub').classList.toggle('hidden', logged);
+    $('#btnEmailLogin').classList.toggle('hidden', logged);
+
+    if(!logged){ [profile,editor,manage].forEach(el=>el.classList.add('hidden')); return; }
+
+    // 加载个人资料
+    await loadProfile(user);
+
+    // 只有管理员可写作/管理
+    const isAdmin = ADMIN_UIDS.includes(user.uid);
+    editor.classList.toggle('hidden', !isAdmin);
+    manage.classList.toggle('hidden', !isAdmin);
+    gate.querySelector('p').innerHTML = isAdmin ? '你是 <b>管理员</b>，可以写作/发布。' : '你已登录，但不在 <code>ADMIN_UIDS</code> 中，仅可查看/修改资料。';
+
+    if(isAdmin) watchMyPosts(user.uid);
+  });
+
+  // 6) 资料：读写
+  async function loadProfile(user){
+    profile.classList.remove('hidden');
+    $('#email').value = user.email||'';
+    $('#displayName').value = user.displayName||'';
+    const docRef = db.collection('profiles').doc(user.uid);
+    const snap = await docRef.get();
+    const data = snap.exists ? snap.data() : {};
+    $('#bio').value = data.bio||'';
+    $('#avatar').src = data.photoURL || user.photoURL || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="100%" height="100%" fill="%230f0f17"/><text x="50%" y="54%" font-size="12" fill="%23a3a3b2" text-anchor="middle">no avatar</text></svg>';
+
+    $('#btnSaveProfile').onclick = async()=>{
+      const displayName=$('#displayName').value.trim();
+      const bio=$('#bio').value.trim();
+      await user.updateProfile({displayName});
+      await docRef.set({displayName,bio,photoURL:$('#avatar').src}, {merge:true});
+      $('#profMsg').textContent='已保存'; setTimeout(()=>$('#profMsg').textContent='',1500);
+    };
+
+    $('#btnSaveAvatar').onclick = async()=>{
+      const f=$('#avatarFile').files[0]; if(!f) return alert('请选择文件');
+      const ref=storage.ref().child(`avatars/${user.uid}/${Date.now()}_${f.name}`);
+      await ref.put(f); const url=await ref.getDownloadURL();
+      $('#avatar').src=url; await docRef.set({photoURL:url},{merge:true});
+    };
+  }
+
+  // 7) 上传图片并把 URL 插入正文
+  $('#btnUploadImg').onclick = async()=>{
+    const user=auth.currentUser; if(!user) return;
+    const f=$('#imgFile').files[0]; if(!f) return alert('请选择图片');
+    const ref=storage.ref().child(`uploads/${user.uid}/${Date.now()}_${f.name}`);
+    await ref.put(f); const url=await ref.getDownloadURL();
+    const ta=$('#content'); ta.value += `\n<p><img src="${url}" alt=""/></p>\n`;
+    $('#imgMsg').textContent='已上传并插入链接'; setTimeout(()=>$('#imgMsg').textContent='',1500);
+  };
+
+  // 8) 保存草稿
+  $('#btnSaveDraft').onclick = async()=>{
+    const user=auth.currentUser; if(!user) return;
+    const title=$('#title').value.trim();
+    const tags=$('#tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const content=$('#content').value.trim();
+    if(!title||!content) return alert('标题与正文必填');
+    const doc={title,tags,content,status:'draft',authorId:user.uid,createdAt:firebase.firestore.FieldValue.serverTimestamp(),updatedAt:firebase.firestore.FieldValue.serverTimestamp()};
+    await db.collection('posts').add(doc);
+    $('#editMsg').textContent='草稿已保存'; setTimeout(()=>$('#editMsg').textContent='',1500);
+    $('#title').value=''; $('#tags').value=''; $('#content').value='';
+  };
+  $('#btnClear').onclick=()=>{ $('#title').value=''; $('#tags').value=''; $('#content').value=''; };
+
+  // 9) 列表与发布/撤稿/删除
+  function watchMyPosts(uid){
+    db.collection('posts').where('authorId','==',uid).orderBy('createdAt','desc').onSnapshot(snap=>{
+      const box=$('#myPosts'); box.innerHTML='';
+      snap.forEach(doc=>{
+        const p=doc.data(); const id=doc.id;
+        const row=document.createElement('div'); row.className='post';
+        row.innerHTML=`<div><b>${escapeHtml(p.title||'(无标题)')}</b> <span class="badge">${p.status||'draft'}</span><div class="meta">${(p.tags||[]).join(', ')}</div></div>`;
+        const actions=document.createElement('div'); actions.className='flex right';
+        const pub=document.createElement('button'); pub.className='btn ok'; pub.textContent='发布';
+        const unpub=document.createElement('button'); unpub.className='btn warn'; unpub.textContent='撤稿';
+        const del=document.createElement('button'); del.className='btn err'; del.textContent='删除';
+        pub.onclick=()=>db.collection('posts').doc(id).set({status:'published',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        unpub.onclick=()=>db.collection('posts').doc(id).set({status:'draft',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        del.onclick=()=>confirm('确认删除？')&&db.collection('posts').doc(id).delete();
+        actions.append(pub,unpub,del); row.append(actions); box.append(row);
+      });
+    });
+  }
+
+  function escapeHtml(s){return (s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+  </script>
+</body>
+</html>
