@@ -16,7 +16,172 @@
       --radius: 16px;
     }
     *{box-sizing:border-box}
+    html,body{height:100%}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的博客</title>
+  <meta name="description" content="基于 Firebase 的极简博客（公众端）">
+  <style>
+    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--card:#14141f;--brand:#6d96ff;--accent:#96f;--r:16px}
+    *{box-sizing:border-box}
     html,body{height:100%}
+    body{margin:0;font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";background:radial-gradient(1200px 600px at 80% -10%, rgba(150,102,255,.12), transparent 40%),radial-gradient(1000px 500px at -10% 10%, rgba(109,150,255,.12), transparent 35%), var(--bg);color:var(--fg)}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:860px;margin:0 auto;padding:28px 20px 64px}
+    header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 6px 20px rgba(150,102,255,.35);overflow:hidden}
+    .logo img{width:40px;height:40px;object-fit:cover}
+    .title{font-size:20px;font-weight:700}
+    .bio{color:var(--muted);font-size:14px;margin-top:2px}
+    nav a{margin-right:14px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.06);padding:18px 18px 16px;border-radius:var(--r);box-shadow:0 10px 24px rgba(0,0,0,.25)}
+    .post-list{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
+    .post-title{margin:0 0 6px;font-size:20px}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
+    .tag{display:inline-block;font-size:12px;padding:.5px 8px;border-radius:999px;background:rgba(150,102,255,.15);margin-right:6px}
+    .preview{color:#d6d6df}
+    article{margin-top:14px}
+    article h1{font-size:28px;margin:0 0 4px}
+    article pre{background:#0e0e15;border:1px solid rgba(255,255,255,.06);padding:14px;border-radius:12px;overflow:auto}
+    article code{background:#11111a;padding:2px 6px;border-radius:6px}
+    footer{margin-top:40px;color:var(--muted);font-size:13px}
+    .back{display:inline-flex;align-items:center;gap:6px}
+    .links a{margin-right:10px}
+    @media (prefers-color-scheme: light){:root{--bg:#f7f7fb;--fg:#0b0b12;--muted:#5b5b6a;--card:#fff}body{background:var(--bg)}.card{background:#fff;border-color:#eef}.preview, article p, article li{color:#2a2a33}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><img id="site-avatar" alt=""></div>
+        <div>
+          <div class="title" id="site-title">我的博客</div>
+          <div class="bio" id="site-bio">记录学习与生活。</div>
+        </div>
+      </div>
+      <nav class="links">
+        <a href="admin.html">作者后台</a>
+        <a href="#/">首页</a>
+      </nav>
+    </header>
+
+    <main id="app" class="card">正在加载…</main>
+
+    <footer>
+      <span id="site-footer">© <span id="year"></span> Powered by Firebase & GitHub Pages</span>
+    </footer>
+  </div>
+
+  <!-- Firebase（只读） -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+  // ===== 1) 替换为你的 Firebase 配置 =====
+  const firebaseConfig = {
+    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
+    authDomain: "project-9037683069333256481.firebaseapp.com",
+    projectId: "project-9037683069333256481",
+    storageBucket: "project-9037683069333256481.firebasestorage.app",
+    messagingSenderId: "256096740039",
+    appId: "1:256096740039:web:875a84e72fb0858354d4e2",
+    measurementId: "G-K4V7F81R9W"
+  };
+  const ADMIN_UID = "YOUR_UID"; // 公众端用来读取作者资料
+
+  // ===== 2) 初始化 =====
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ===== 3) 工具函数 =====
+  const $ = (s,root=document)=>root.querySelector(s);
+  const esc = s => (s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+  const strip = html => {const d=document.createElement('div'); d.innerHTML=html; return d.textContent||''};
+  const readingTime = html => {const n=strip(html).trim().split(/\s+/).filter(Boolean).length; return Math.max(1,Math.round(n/400))+" 分钟阅读"};
+  const fmtDate = ts => {if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'})};
+
+  // ===== 4) 读取作者资料（显示名/简介/头像） =====
+  async function loadProfile(){
+    try{
+      const snap = await db.collection('profiles').doc(ADMIN_UID).get();
+      if(snap.exists){
+        const p=snap.data();
+        $('#site-title').textContent = (p.displayName||'我的') + '的博客';
+        $('#site-bio').textContent = p.bio || '记录学习与生活。';
+        if(p.photoURL) $('#site-avatar').src = p.photoURL;
+      }
+    }catch(e){console.warn('loadProfile error',e)}
+  }
+
+  // ===== 5) 读取文章 =====
+  async function fetchPosts(){
+    const snap = await db.collection('posts')
+      .where('status','==','published')
+      .orderBy('createdAt','desc').get();
+    return snap.docs.map(d=>({id:d.id, ...d.data()}));
+  }
+  async function fetchPostById(id){
+    const d = await db.collection('posts').doc(id).get();
+    if(!d.exists) return null; const x=d.data(); return {id:d.id, ...x};
+  }
+
+  // ===== 6) 渲染 =====
+  async function renderList(){
+    const app = $('#app');
+    app.innerHTML = '加载文章中…';
+    const posts = await fetchPosts();
+    if(posts.length===0){ app.innerHTML = '<div>还没有发布的文章。</div>'; return; }
+    app.innerHTML = `
+      <section>
+        <h2 style="margin:0 0 6px">最新文章</h2>
+        <div class="post-list">
+          ${posts.map(p=>{
+            const preview = strip(p.content||'').slice(0,140) + (strip(p.content||'').length>140?'…':'');
+            const tags = (p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+            return `
+              <article class="card" style="padding:14px">
+                <h3 class="post-title"><a href="#/post/${p.id}">${esc(p.title||'(无标题)')}</a></h3>
+                <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
+                <div class="preview">${esc(preview)}</div>
+              </article>`;
+          }).join('')}
+        </div>
+      </section>`;
+  }
+
+  async function renderPost(id){
+    const app = $('#app');
+    app.innerHTML = '加载中…';
+    const p = await fetchPostById(id);
+    if(!p || p.status!=='published'){ app.innerHTML = '<div>未找到该文章或未发布。<br><a class="back" href="#/">← 返回列表</a></div>'; return; }
+    const tags = (p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    app.innerHTML = `
+      <article>
+        <a class="back" href="#/">← 返回列表</a>
+        <h1>${esc(p.title||'(无标题)')}</h1>
+        <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
+        <div class="card" style="margin-top:12px"><div class="content">${p.content||''}</div></div>
+      </article>`;
+  }
+
+  function route(){
+    const h=location.hash;
+    if(h.startsWith('#/post/')){ renderPost(h.replace('#/post/','')); }
+    else { renderList(); }
+  }
+
+  window.addEventListener('hashchange', route);
+  (async ()=>{ await loadProfile(); route(); })();
+  </script>
+</body>
+</html>
+
     body{
       margin:0;
       font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial, "Apple Color Emoji","Segoe UI Emoji";
@@ -92,8 +257,8 @@
   <script>
   // ====== 1) 站点配置（按需改成你自己的） ======
   const SITE = {
-    title: "你的名字的博客",
-    author: "你的名字",
+    title: "阿涛之家",
+    author: "张海涛",
     bio: "计算机专业学生，记录所学所悟。",
     links: [
       { text: "GitHub", href: "https://github.com/yourname" },
