@@ -1,13 +1,202 @@
-下面提供两份**可直接复制到 GitHub 仓库根目录**的页面源码：
+下面是你要的**三页成品**（直接复制到仓库根目录即可）：
 
+* `index.html`：公众端（读取 Firestore，支持站点背景 + 漂亮 UI，带“＋创作”按钮直达后台）
 * `admin-profile.html`：作者资料页（姓名/昵称/标签/简介/头像、站点背景、作者页背景）
-* `admin-editor.html`：创作与发布页（写作、插图上传、草稿/发布/撤稿/删除、我的文章列表）
+* `admin-editor.html`：创作发布页（超简编辑、图片上传、草稿/发布/撤稿/删除、右下角“＋添加”按钮）
 
-> 说明：两页均使用 **Firebase（Auth + Firestore）** 与 **Cloudinary（免绑卡，非签名上传）**。把文中的占位项（`firebaseConfig`、`ADMIN_UIDS`、`CLOUDINARY`）替换为你自己的值后提交即可。
+> 把三页里顶部的 **`firebaseConfig`**、**`ADMIN_UID(S)`**、以及 **`CLOUDINARY`**（`cloudName` + `unsignedPreset`）替换为你的值。Cloudinary 预设名就是你刚建的 `blog_unsigned`。
 
 ---
 
-## 1) `admin-profile.html`
+## 1) `index.html`（公众端：Firestore 读取 + 站点背景 + 漂亮 UI + “＋创作”）
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的博客</title>
+  <meta name="description" content="基于 Firebase 的极简博客（公众端）">
+  <style>
+    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--card:#14141f;--brand:#6d96ff;--accent:#96f;--r:16px}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+      background:radial-gradient(1200px 600px at 80% -10%, rgba(150,102,255,.12), transparent 40%),
+                 radial-gradient(1000px 500px at -10% 10%, rgba(109,150,255,.12), transparent 35%), var(--bg);
+      color:var(--fg)}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px}
+    header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 6px 20px rgba(150,102,255,.35);overflow:hidden}
+    .logo img{width:44px;height:44px;object-fit:cover}
+    .title{font-size:22px;font-weight:800}
+    .bio{color:var(--muted);font-size:14px;margin-top:2px}
+    nav a{margin-right:14px}
+    .btn{display:inline-block;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#0b0b12;font-weight:600;box-shadow:0 6px 18px rgba(109,150,255,.35)}
+    .btn:hover{filter:brightness(1.05)}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);
+      padding:18px 18px 16px;border-radius:var(--r);box-shadow:0 10px 24px rgba(0,0,0,.25)}
+    .post-list{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
+    .post-title{margin:0 0 6px;font-size:20px}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
+    .tag{display:inline-block;font-size:12px;padding:.5px 8px;border-radius:999px;background:rgba(150,102,255,.15);margin-right:6px}
+    .preview{color:#d6d6df}
+    article{margin-top:14px}
+    article h1{font-size:28px;margin:0 0 4px}
+    article pre{background:#0e0e15;border:1px solid rgba(255,255,255,.06);padding:14px;border-radius:12px;overflow:auto}
+    article code{background:#11111a;padding:2px 6px;border-radius:6px}
+    footer{margin-top:40px;color:var(--muted);font-size:13px}
+    .back{display:inline-flex;align-items:center;gap:6px}
+    .links a{margin-right:10px}
+    .fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;
+         background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;
+         color:#0b0b12;font-size:28px;font-weight:800;box-shadow:0 14px 28px rgba(109,150,255,.35)}
+    .fab:hover{transform:translateY(-1px);filter:brightness(1.06)}
+    @media (prefers-color-scheme: light){
+      :root{--bg:#f7f7fb;--fg:#0b0b12;--muted:#5b5b6a;--card:#fff}
+      body{background:var(--bg)}
+      .card{background:#fff;border-color:#eef}
+      .preview, article p, article li{color:#2a2a33}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><img id="site-avatar" alt=""></div>
+        <div>
+          <div class="title" id="site-title">我的博客</div>
+          <div class="bio" id="site-bio">记录学习与生活。</div>
+        </div>
+      </div>
+      <nav class="links">
+        <a href="admin-profile.html">作者资料</a>
+        <a class="btn" href="admin-editor.html">＋ 创作</a>
+      </nav>
+    </header>
+
+    <main id="app" class="card">正在加载…</main>
+
+    <footer>
+      <span id="site-footer">© <span id="year"></span> Powered by Firebase & GitHub Pages</span>
+    </footer>
+  </div>
+
+  <!-- 右下角快捷“＋”按钮，直达创作页 -->
+  <a class="fab" title="新建文章" href="admin-editor.html">＋</a>
+
+  <!-- Firebase（只读） -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+  // 1) 你的 Firebase 配置
+  const firebaseConfig = {
+    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
+    authDomain: "project-9037683069333256481.firebaseapp.com",
+    projectId: "project-9037683069333256481",
+    appId: "1:256096740039:web:875a84e72fb0858354d4e2"
+  };
+  const ADMIN_UID = "SjLJvvCJciUyhwWR6vaJnqQXUpx2"; // 公众端用来读取作者资料
+
+  // 2) 初始化
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // 3) 工具
+  const $ = (s,root=document)=>root.querySelector(s);
+  const esc = s => (s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+  const strip = html => {const d=document.createElement('div'); d.innerHTML=html; return d.textContent||''};
+  const readingTime = html => {const n=strip(html).trim().split(/\s+/).filter(Boolean).length; return Math.max(1,Math.round(n/400))+" 分钟阅读"};
+  const fmtDate = ts => {if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'})};
+
+  // 4) 读取作者资料并应用站点背景
+  async function loadProfile(){
+    try{
+      const snap = await db.collection('profiles').doc(ADMIN_UID).get();
+      if(snap.exists){
+        const p=snap.data();
+        $('#site-title').textContent = (p.displayName||'我的') + '的博客';
+        $('#site-bio').textContent = p.bio || '记录学习与生活。';
+        if(p.photoURL) $('#site-avatar').src = p.photoURL;
+        if(p.siteBgUrl){
+          document.body.style.background =
+            `linear-gradient(120deg, rgba(150,102,255,.10), rgba(109,150,255,.10)), url('${p.siteBgUrl}') center/cover fixed no-repeat, #0b0b12`;
+        }
+      }
+    }catch(e){ console.warn('loadProfile error',e); }
+  }
+
+  // 5) 文章
+  async function fetchPosts(){
+    try{
+      const snap = await db.collection('posts')
+        .where('status','==','published')
+        .orderBy('createdAt','desc').get();
+      return snap.docs.map(d=>({id:d.id, ...d.data()}));
+    }catch(e){
+      const app=$('#app');
+      const msg=String(e&&e.message||e);
+      if(msg.includes('FAILED_PRECONDITION')||msg.includes('requires an index')){
+        app.innerHTML = '<div>需要创建 Firestore 复合索引：集合 <code>posts</code>，<code>status(升序)</code> + <code>createdAt(降序)</code>。在 Firestore → 索引 创建后等待构建生效。</div>';
+      }else{ app.innerHTML = '<div>加载失败：'+esc(msg)+'</div>'; }
+      return [];
+    }
+  }
+  async function fetchPostById(id){ const d=await db.collection('posts').doc(id).get(); return d.exists? {id:d.id,...d.data()}: null; }
+
+  // 6) 渲染
+  async function renderList(){
+    const app=$('#app'); app.innerHTML='加载文章中…';
+    const posts=await fetchPosts();
+    if(posts.length===0){ app.innerHTML='<div>还没有发布的文章。</div>'; return; }
+    app.innerHTML = `
+      <section>
+        <h2 style="margin:0 0 6px">最新文章</h2>
+        <div class="post-list">
+          ${posts.map(p=>{
+            const preview = strip(p.content||'').slice(0,150) + (strip(p.content||'').length>150?'…':'');
+            const tags = (p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+            return `
+              <article class="card" style="padding:14px">
+                <h3 class="post-title"><a href="#/post/${p.id}">${esc(p.title||'(无标题)')}</a></h3>
+                <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
+                <div class="preview">${esc(preview)}</div>
+              </article>`;
+          }).join('')}
+        </div>
+      </section>`;
+  }
+  async function renderPost(id){
+    const app=$('#app'); app.innerHTML='加载中…';
+    const p=await fetchPostById(id);
+    if(!p||p.status!=='published'){ app.innerHTML='<div>未找到该文章或未发布。<br><a class="back" href="#/">← 返回列表</a></div>'; return; }
+    const tags=(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+    app.innerHTML = `
+      <article>
+        <a class="back" href="#/">← 返回列表</a>
+        <h1>${esc(p.title||'(无标题)')}</h1>
+        <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
+        <div class="card" style="margin-top:12px"><div class="content">${p.content||''}</div></div>
+      </article>`;
+  }
+  function route(){ const h=location.hash; if(h.startsWith('#/post/')) renderPost(h.replace('#/post/','')); else renderList(); }
+  window.addEventListener('hashchange', route);
+  (async()=>{ await loadProfile(); route(); })();
+  </script>
+</body>
+</html>
+```
+
+---
+
+## 2) `admin-profile.html`（作者资料 + 背景图上传，登录后即时预览作者页背景）
 
 ```html
 <!doctype html>
@@ -20,7 +209,6 @@
     :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--glass:rgba(255,255,255,.06);--r:16px;--brand:#7aa2ff;--accent:#b892ff}
     *{box-sizing:border-box}
     body{margin:0;color:var(--fg);font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1100px 600px at 90% -10%, rgba(186,146,255,.15), transparent 40%),radial-gradient(1200px 700px at -10% 10%, rgba(122,162,255,.15), transparent 35%), #0b0b12;min-height:100vh}
-    /* 背景图预留（登录后若有 authorBgUrl 会替换） */
     .wrap{max-width:980px;margin:0 auto;padding:28px}
     header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
     .nav a{color:#cfd8ff;margin-left:14px;text-decoration:none}
@@ -32,9 +220,10 @@
     button{cursor:pointer}
     .muted{color:var(--muted)}
     .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    img.avatar{width:72px;height:72px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)}
-    .tag{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(186,146,255,.18);margin-right:6px;font-size:12px}
+    img.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)}
     .hidden{display:none}
+    .chips{margin-top:6px}
+    .chip{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(186,146,255,.18);margin-right:6px;font-size:12px}
   </style>
 </head>
 <body>
@@ -42,6 +231,7 @@
     <header>
       <h2 style="margin:0">作者资料</h2>
       <div class="nav">
+        <a href="index.html">首页</a>
         <a href="admin-editor.html">→ 去创作发布</a>
       </div>
     </header>
@@ -53,7 +243,7 @@
         <button id="btnEmail">邮箱登录</button>
         <button id="btnLogout" class="hidden">退出</button>
       </div>
-      <div class="muted" style="margin-top:6px">只有 <code>ADMIN_UIDS</code> 列表中的账号拥有发布权限；此页面任何登录用户都可编辑自己的资料。</div>
+      <div class="muted" style="margin-top:6px">任何登录用户都可编辑自己的资料；仅 <code>ADMIN_UIDS</code> 中账号拥有发布权限。</div>
     </section>
 
     <section id="profile" class="card hidden">
@@ -75,6 +265,7 @@
       </div>
       <label>标签（逗号分隔）</label>
       <input id="tags" placeholder="前端, 摄影, 篮球">
+      <div id="chips" class="chips"></div>
       <label style="margin-top:8px">个人简介</label>
       <textarea id="bio" rows="4" placeholder="一句话介绍或简历摘要"></textarea>
       <div class="flex" style="margin-top:8px">
@@ -92,10 +283,10 @@
             <input type="file" id="siteBgFile" accept="image/*" style="max-width:260px">
             <button id="btnSiteBg">上传并应用</button>
           </div>
-          <div class="muted" style="margin-top:6px">字段：<code>siteBgUrl</code>（index.html 会自动读取并应用）</div>
+          <div class="muted" style="margin-top:6px">字段：<code>siteBgUrl</code>（首页会自动读取并应用）</div>
         </div>
         <div>
-          <label>作者页背景（当前页面）</label>
+          <label>作者页背景（当前页）</label>
           <div class="flex">
             <input type="file" id="authorBgFile" accept="image/*" style="max-width:260px">
             <button id="btnAuthorBg">上传并应用</button>
@@ -113,101 +304,44 @@
 
   <script>
   // 1) 替换为你的 Firebase 配置
-  const firebaseConfig = {
-    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
-    authDomain: "project-9037683069333256481.firebaseapp.com",
-    projectId: "project-9037683069333256481",
-    storageBucket: "project-9037683069333256481.firebasestorage.app",
-    messagingSenderId: "256096740039",
-    appId: "1:256096740039:web:875a84e72fb0858354d4e2",
-    measurementId: "G-K4V7F81R9W"
-  };
-  // 哪些 UID 拥有发布权限（此页不强制，但会在导航提示）
-  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"];
-
-  // 2) Cloudinary 不用绑卡：填写你的 cloudName 与 unsigned preset 名
+  const firebaseConfig = { apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo", authDomain: "project-9037683069333256481.firebaseapp.com", projectId: "project-9037683069333256481", appId: "1:256096740039:web:875a84e72fb0858354d4e2" };
+  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 提示用途（真正权限由 Firestore 规则控制）
+  // 2) Cloudinary（免绑卡）
   const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
 
-  // 3) 初始化
   firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+  const auth=firebase.auth(); const db=firebase.firestore();
+  const $=(s,r=document)=>r.querySelector(s);
+  const who=$('#who'), box=$('#profile'), bg=$('#bgsec');
 
-  const $ = (s,root=document)=>root.querySelector(s);
-  const who=$('#who'), profileBox=$('#profile'), bgsec=$('#bgsec');
-
-  // 登录入口
-  $('#btnGitHub').onclick = async()=>{
-    try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message); }
-  };
-  $('#btnEmail').onclick = async()=>{
-    const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return;
-    try{ await auth.signInWithEmailAndPassword(email, pass); }
-    catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message); }
-  };
-  $('#btnLogout').onclick = ()=>auth.signOut();
+  $('#btnGitHub').onclick=async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message);} };
+  $('#btnEmail').onclick=async()=>{ const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return; try{ await auth.signInWithEmailAndPassword(email, pass);}catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message);} };
+  $('#btnLogout').onclick=()=>auth.signOut();
 
   auth.onAuthStateChanged(async user=>{
-    const logged=!!user; who.textContent = logged? (user.displayName||user.email||user.uid) : '未登录';
-    $('#btnLogout').classList.toggle('hidden', !logged);
-    $('#btnGitHub').classList.toggle('hidden', logged);
-    $('#btnEmail').classList.toggle('hidden', logged);
-    if(!logged){ profileBox.classList.add('hidden'); bgsec.classList.add('hidden'); return; }
+    const logged=!!user; who.textContent=logged?(user.displayName||user.email||user.uid):'未登录';
+    $('#btnLogout').classList.toggle('hidden',!logged); $('#btnGitHub').classList.toggle('hidden',logged); $('#btnEmail').classList.toggle('hidden',logged);
+    if(!logged){ box.classList.add('hidden'); bg.classList.add('hidden'); return; }
 
-    // 读取资料
-    profileBox.classList.remove('hidden'); bgsec.classList.remove('hidden');
-    const ref = db.collection('profiles').doc(user.uid);
-    const snap = await ref.get(); const p = snap.exists? snap.data(): {};
-    $('#displayName').value = p.displayName||''; $('#nickname').value = p.nickname||''; $('#bio').value = p.bio||''; $('#tags').value = (p.tags||[]).join(', ');
-    $('#avatar').src = p.photoURL || user.photoURL || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72"><rect width="100%" height="100%" fill="%230f0f17"/><text x="50%" y="56%" font-size="12" fill="%23a3a3b2" text-anchor="middle">no avatar</text></svg>';
+    box.classList.remove('hidden'); bg.classList.remove('hidden');
+    const ref=db.collection('profiles').doc(user.uid); const s=await ref.get(); const p=s.exists?s.data():{};
+    $('#displayName').value=p.displayName||''; $('#nickname').value=p.nickname||''; $('#bio').value=p.bio||''; $('#tags').value=(p.tags||[]).join(', ');
+    $('#avatar').src=p.photoURL||user.photoURL||'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76"><rect width="100%" height="100%" fill="%230f0f17"/><text x="50%" y="56%" font-size="12" fill="%23a3a3b2" text-anchor="middle">no avatar</text></svg>';
+    renderChips(p.tags||[]);
+    if(p.authorBgUrl){ document.body.style.background=`linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${p.authorBgUrl}') center/cover fixed no-repeat, #0b0b12`; }
 
-    // 背景即时应用
-    if(p.authorBgUrl){ document.body.style.background = `linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${p.authorBgUrl}') center/cover fixed no-repeat, #0b0b12`; }
-
-    // 保存资料
-    $('#btnSave').onclick = async()=>{
-      const doc={
-        displayName: $('#displayName').value.trim(),
-        nickname: $('#nickname').value.trim(),
-        bio: $('#bio').value.trim(),
-        tags: $('#tags').value.split(',').map(s=>s.trim()).filter(Boolean),
-        photoURL: $('#avatar').src
-      };
-      await ref.set(doc,{merge:true});
-      tip('已保存');
+    $('#btnSave').onclick=async()=>{
+      const doc={ displayName:$('#displayName').value.trim(), nickname:$('#nickname').value.trim(), bio:$('#bio').value.trim(), tags:$('#tags').value.split(',').map(s=>s.trim()).filter(Boolean), photoURL:$('#avatar').src };
+      await ref.set(doc,{merge:true}); renderChips(doc.tags); tip('已保存');
     };
-
-    // 头像上传
-    $('#btnAvatar').onclick = async()=>{
-      const f=$('#avatarFile').files[0]; if(!f) return alert('请选择文件');
-      const url = await uploadToCloudinary(f, `avatars/${user.uid}`);
-      $('#avatar').src=url; await ref.set({photoURL:url},{merge:true}); tip('头像已更新');
-    };
-
-    // 背景上传
-    $('#btnSiteBg').onclick = async()=>{
-      const f=$('#siteBgFile').files[0]; if(!f) return alert('请选择图片');
-      const url=await uploadToCloudinary(f, `backgrounds/${user.uid}`);
-      await ref.set({siteBgUrl:url},{merge:true}); tip('站点背景已更新（首页将自动应用）');
-    };
-    $('#btnAuthorBg').onclick = async()=>{
-      const f=$('#authorBgFile').files[0]; if(!f) return alert('请选择图片');
-      const url=await uploadToCloudinary(f, `backgrounds/${user.uid}`);
-      await ref.set({authorBgUrl:url},{merge:true});
-      document.body.style.background = `linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${url}') center/cover fixed no-repeat, #0b0b12`;
-      tip('作者页背景已更新');
-    };
+    $('#btnAvatar').onclick=async()=>{ const f=$('#avatarFile').files[0]; if(!f) return alert('请选择文件'); const url=await upload(f,`avatars/${user.uid}`); $('#avatar').src=url; await ref.set({photoURL:url},{merge:true}); tip('头像已更新'); };
+    $('#btnSiteBg').onclick=async()=>{ const f=$('#siteBgFile').files[0]; if(!f) return alert('请选择图片'); const url=await upload(f,`backgrounds/${user.uid}`); await ref.set({siteBgUrl:url},{merge:true}); tip('站点背景已更新'); };
+    $('#btnAuthorBg').onclick=async()=>{ const f=$('#authorBgFile').files[0]; if(!f) return alert('请选择图片'); const url=await upload(f,`backgrounds/${user.uid}`); await ref.set({authorBgUrl:url},{merge:true}); document.body.style.background=`linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${url}') center/cover fixed no-repeat, #0b0b12`; tip('作者页背景已更新'); };
   });
 
+  function renderChips(tags){ const c=$('#chips'); c.innerHTML=(tags||[]).map(t=>`<span class="chip">${t}</span>`).join(''); }
   function tip(t){ const m=$('#msg'); m.textContent=t; setTimeout(()=>m.textContent='',1500); }
-
-  async function uploadToCloudinary(file, folder){
-    if(!CLOUDINARY.cloudName||!CLOUDINARY.unsignedPreset) throw new Error('请先在代码中填写 Cloudinary 配置');
-    const form=new FormData(); form.append('file',file); form.append('upload_preset',CLOUDINARY.unsignedPreset); if(folder) form.append('folder',folder);
-    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`,{method:'POST',body:form});
-    const data=await res.json(); if(!res.ok||!data.secure_url) throw new Error(data.error?.message||'上传失败');
-    return data.secure_url;
-  }
+  async function upload(file,folder){ const form=new FormData(); form.append('file',file); form.append('upload_preset',CLOUDINARY.unsignedPreset); if(folder) form.append('folder',folder); const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`,{method:'POST',body:form}); const d=await r.json(); if(!r.ok||!d.secure_url) throw new Error(d.error?.message||'上传失败'); return d.secure_url; }
   </script>
 </body>
 </html>
@@ -215,7 +349,7 @@
 
 ---
 
-## 2) `admin-editor.html`
+## 3) `admin-editor.html`（创作发布：右下角“＋添加”按钮，简洁编辑 + 图片上传 + 列表管理）
 
 ```html
 <!doctype html>
@@ -244,6 +378,8 @@
     .warn{background:#3a2a11;border-color:#6c4f1e}
     .err{background:#3a1411;border-color:#6c241e}
     .hidden{display:none}
+    .fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;color:#0b0b12;font-size:28px;font-weight:800;box-shadow:0 14px 28px rgba(109,150,255,.35)}
+    .fab:hover{transform:translateY(-1px);filter:brightness(1.06)}
   </style>
 </head>
 <body>
@@ -251,7 +387,8 @@
     <header>
       <h2 style="margin:0">创作发布</h2>
       <div class="nav">
-        <a href="admin-profile.html">← 回作者资料</a>
+        <a href="index.html">首页</a>
+        <a href="admin-profile.html">作者资料</a>
       </div>
     </header>
 
@@ -298,6 +435,9 @@
     </section>
   </div>
 
+  <!-- 右下角“＋添加”按钮：清空并聚焦编辑器 -->
+  <button class="fab" id="openCreate" title="新建文章">＋</button>
+
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -305,25 +445,20 @@
 
   <script>
   // 1) 你的 Firebase 配置
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    appId: "YOUR_APP_ID",
-  };
-  const ADMIN_UIDS = ["YOUR_UID"]; // 允许发布的人
+  const firebaseConfig = { apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo", authDomain: "project-9037683069333256481.firebaseapp.com", projectId: "project-9037683069333256481", appId: "1:256096740039:web:875a84e72fb0858354d4e2" };
+  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"]; // 允许发布的人
 
   // 2) Cloudinary（免绑卡）
-  const CLOUDINARY = { cloudName: "YOUR_CLOUD_NAME", unsignedPreset: "YOUR_UNSIGNED_PRESET" };
+  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
 
   // 3) 初始化
   firebase.initializeApp(firebaseConfig);
   const auth=firebase.auth(); const db=firebase.firestore();
-  const $ = (s,root=document)=>root.querySelector(s);
+  const $=(s,r=document)=>r.querySelector(s);
 
   // 登录
-  $('#btnGitHub').onclick = async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message);} };
-  $('#btnEmail').onclick = async()=>{ const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return; try{ await auth.signInWithEmailAndPassword(email, pass);}catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message);} };
+  $('#btnGitHub').onclick=async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message);} };
+  $('#btnEmail').onclick=async()=>{ const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return; try{ await auth.signInWithEmailAndPassword(email, pass);}catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message);} };
   $('#btnLogout').onclick=()=>auth.signOut();
 
   auth.onAuthStateChanged(async user=>{
@@ -334,10 +469,14 @@
     const isAdmin = !!user && ADMIN_UIDS.includes(user.uid);
     $('#editor').classList.toggle('hidden', !isAdmin);
     $('#mine').classList.toggle('hidden', !isAdmin);
+    $('#openCreate').classList.toggle('hidden', !isAdmin);
     if(isAdmin) startMine(user.uid);
   });
 
-  // 上传图片并插入正文
+  // 右下角“＋添加” → 清空并聚焦编辑器
+  $('#openCreate').onclick=()=>{ $('#title').value=''; $('#tags').value=''; $('#content').value=''; document.getElementById('title').focus(); window.scrollTo({top:0,behavior:'smooth'}); };
+
+  // 上传图片并插入
   $('#btnUploadImg').onclick = async()=>{
     const f=$('#imgFile').files[0]; if(!f) return alert('请选择图片');
     const user=auth.currentUser; if(!user) return alert('请先登录');
@@ -395,31 +534,10 @@
 
 ---
 
-## 3) 让首页 `index.html` 支持站点背景（可选增强）
+### 提醒与步骤
 
-在你的 **Firebase 读取版 `index.html`** 中，`loadProfile()` 读取到资料后，添加一段应用背景的代码：
-
-```js
-if (p.siteBgUrl) {
-  document.body.style.background =
-    `linear-gradient(120deg, rgba(150,102,255,.10), rgba(109,150,255,.10)), url('${p.siteBgUrl}') center/cover fixed no-repeat, #0b0b12`;
-}
-```
-
-把它放在 `if(snap.exists){ const p=snap.data(); ... }` 的块里即可。
-
----
-
-### 使用步骤（不跳步）
-
-1. **把上面两份文件**保存为 `admin-profile.html` 与 `admin-editor.html`，提交到仓库根目录。导航互相指向已写好。
-2. 两个文件里分别替换：
-
-   * `firebaseConfig`（你的项目配置）
-   * `ADMIN_UIDS = ["你的UID"]`
-   * `CLOUDINARY = { cloudName: "你的 cloud", unsignedPreset: "你的 unsigned 预设" }`
-3. **Firestore 规则**保持原规则（profiles 你本人可写；posts 仅白名单可写）；**复合索引**：`posts` 集合 `status(Asc)` + `createdAt(Desc)`。
-4. 访问 `admin-profile.html` 登录 → 完善资料、上传头像/背景并保存；再去 `admin-editor.html` 写作并发布。
-5. 首页 `index.html` 会读取 `profiles/{ADMIN_UID}` 的资料与背景，并只展示 `published` 的文章。
-
-> 需要我把这两页直接填入你的 `firebaseConfig / UID / cloudName / preset` 生成“专属成品”也可以，告诉我四个值即可。
+1. **替换配置**：三页顶部 `firebaseConfig` / `ADMIN_UID(S)` / `CLOUDINARY`（你的 `cloudName` 与 `blog_unsigned` 预设）。
+2. **Firestore 规则**与**复合索引**保持之前设置（`posts` 的 `status(Asc)` + `createdAt(Desc)`）。
+3. 访问 `admin-profile.html` → 登录 → 填姓名/昵称/标签/简介、上传头像与背景并保存；首页自动读到 `siteBgUrl`。
+4. 访问 `admin-editor.html` → 登录 → 右下角“＋添加”→ 填标题/正文，上传图片，**保存草稿**或**直接发布**。
+5. 首页 `index.html`：展示 `published` 的内容，右上/右下都有“＋创作”入口，整体 UI 已美化且支持自定义背景图。
