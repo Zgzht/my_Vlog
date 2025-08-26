@@ -4,46 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>我的博客</title>
-  <meta name="description" content="基于 Firebase 的极简博客（公众端）">
-  <style>
-    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--card:#14141f;--brand:#6d96ff;--accent:#96f;--r:16px}
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;font:16px/1.65 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
-      background:radial-gradient(1200px 600px at 80% -10%, rgba(150,102,255,.12), transparent 40%),
-                 radial-gradient(1000px 500px at -10% 10%, rgba(109,150,255,.12), transparent 35%), var(--bg); color:var(--fg)}
-    a{color:var(--brand);text-decoration:none} a:hover{text-decoration:underline}
-    .wrap{max-width:960px;margin:0 auto;padding:28px 20px 64px}
-    header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:16px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));box-shadow:0 6px 20px rgba(150,102,255,.35);overflow:hidden}
-    .logo img{width:44px;height:44px;object-fit:cover}
-    .title{font-size:22px;font-weight:800} .bio{color:var(--muted);font-size:14px;margin-top:2px}
-    .btn{display:inline-block;padding:8px 14px;border-radius:999px;background:linear-gradient(135deg,var(--brand),var(--accent));color:#0b0b12;font-weight:600;box-shadow:0 6px 18px rgba(109,150,255,.35)}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);
-      padding:18px 18px 16px;border-radius:var(--r);box-shadow:0 10px 24px rgba(0,0,0,.25)}
-    .post-list{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
-    .post-title{margin:0 0 6px;font-size:20px}
-    .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
-    .tag{display:inline-block;font-size:12px;padding:.5px 8px;border-radius:999px;background:rgba(150,102,255,.15);margin-right:6px}
-    .preview{color:#d6d6df}
-    footer{margin-top:40px;color:var(--muted);font-size:13px}
-    .back{display:inline-flex;align-items:center;gap:6px}
-    .fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));
-         display:flex;align-items:center;justify-content:center;color:#0b0b12;font-size:28px;font-weight:800;box-shadow:0 14px 28px rgba(109,150,255,.35)}
-    @media (prefers-color-scheme: light){
-      :root{--bg:#f7f7fb;--fg:#0b0b12;--muted:#5b5b6a;--card:#fff} body{background:var(--bg)}
-      .card{background:#fff;border-color:#eef} .preview, article p, article li{color:#2a2a33}
-    }
-  </style>
+  <meta name="description" content="基于 Firebase 的极简博客">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="我的博客">
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
   <div class="wrap">
     <header>
       <div class="brand">
-        <div class="logo" aria-hidden="true"><img id="site-avatar" alt=""></div>
+        <div class="logo" aria-hidden="true">
+          <img id="site-avatar" alt="站点头像" loading="lazy">
+        </div>
         <div>
-          <div class="title" id="site-title">我的博客</div>
-          <div class="bio" id="site-bio">记录学习与生活。</div>
+          <h1 class="title" id="site-title">我的博客</h1>
+          <div class="bio" id="site-bio">记录学习与生活</div>
         </div>
       </div>
       <nav>
@@ -52,107 +27,309 @@
       </nav>
     </header>
 
-    <main id="app" class="card">正在加载…</main>
+    <main id="app" class="card">
+      <div class="loading">
+        <div class="spinner"></div>
+        正在加载...
+      </div>
+    </main>
 
     <footer>
       <span id="site-footer">© <span id="year"></span> Powered by Firebase & GitHub Pages</span>
     </footer>
   </div>
 
-  <a class="fab" title="新建文章" href="admin-editor.html">＋</a>
+  <a class="fab" title="新建文章" href="admin-editor.html" aria-label="新建文章">＋</a>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script>
-  // Firebase 配置（你的）
-  const firebaseConfig = {
-    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
-    authDomain: "project-9037683069333256481.firebaseapp.com",
-    projectId: "project-9037683069333256481",
-    appId: "1:256096740039:web:875a84e72fb0858354d4e2"
-  };
-  const ADMIN_UID = "SjLJvvCJciUyhwWR6vaJnqQXUpx2";
+  
+  <!-- 应用模块 -->
+  <script type="module">
+    import { ADMIN_UID } from './js/config.js';
+    import './js/firebase.js';
+    import { getProfile } from './js/api.profile.js';
+    import { listPublished, getPostByIdOrSlug } from './js/api.posts.js';
+    import { 
+      $, 
+      escapeHtml, 
+      stripTags, 
+      formatDate, 
+      calculateReadingTime, 
+      generateExcerpt,
+      renderTags,
+      applySiteBg,
+      HashRouter,
+      showLoading,
+      showError,
+      showEmpty,
+      setPageTitle,
+      setPageMeta,
+      lazyLoadImages
+    } from './js/render.js';
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  document.getElementById('year').textContent = new Date().getFullYear();
+    // 初始化年份
+    $('#year').textContent = new Date().getFullYear();
 
-  const $ = (s,r=document)=>r.querySelector(s);
-  const esc = s => (s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
-  const strip = html => {const d=document.createElement('div'); d.innerHTML=html; return d.textContent||''};
-  const readingTime = html => {const n=strip(html).trim().split(/\s+/).filter(Boolean).length; return Math.max(1,Math.round(n/400))+" 分钟阅读"};
-  const fmtDate = ts => {if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return d.toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'})};
+    // 路由实例
+    const router = new HashRouter();
 
-  async function loadProfile(){
-    try{
-      const snap = await db.collection('profiles').doc(ADMIN_UID).get();
-      if(snap.exists){
-        const p=snap.data();
-        $('#site-title').textContent = (p.displayName||'我的') + '的博客';
-        $('#site-bio').textContent = p.bio || '记录学习与生活。';
-        if(p.photoURL) $('#site-avatar').src = p.photoURL;
-        if(p.siteBgUrl){
-          document.body.style.background =
-            `linear-gradient(120deg, rgba(150,102,255,.10), rgba(109,150,255,.10)), url('${p.siteBgUrl}') center/cover fixed no-repeat, #0b0b12`;
+    // 加载站点资料
+    async function loadSiteProfile() {
+      try {
+        const profile = await getProfile(ADMIN_UID);
+        if (profile) {
+          const siteName = profile.displayName ? `${profile.displayName}的博客` : '我的博客';
+          $('#site-title').textContent = siteName;
+          $('#site-bio').textContent = profile.bio || '记录学习与生活';
+          
+          if (profile.photoURL) {
+            $('#site-avatar').src = profile.photoURL;
+          }
+          
+          if (profile.siteBgUrl) {
+            applySiteBg(profile.siteBgUrl);
+          }
+
+          // 更新页面标题
+          setPageTitle('', siteName);
+          
+          // 设置页面元数据
+          setPageMeta({
+            title: siteName,
+            description: profile.bio || '记录学习与生活',
+            image: profile.photoURL,
+            url: window.location.href
+          });
+        }
+      } catch (error) {
+        console.warn('加载站点资料失败:', error);
+      }
+    }
+
+    // 渲染文章列表
+    async function renderPostList() {
+      const app = $('#app');
+      showLoading(app, '加载文章中...');
+      
+      try {
+        const posts = await listPublished({ limit: 20 });
+        
+        if (posts.length === 0) {
+          showEmpty(app, '还没有发布的文章', '期待第一篇精彩内容');
+          return;
+        }
+
+        app.innerHTML = `
+          <section>
+            <h2 style="margin: 0 0 16px 0; font-size: 24px;">最新文章</h2>
+            <div class="post-list">
+              ${posts.map(post => renderPostCard(post)).join('')}
+            </div>
+          </section>
+        `;
+
+        // 懒加载图片
+        lazyLoadImages(app);
+        
+        // 设置页面标题
+        setPageTitle('');
+        
+      } catch (error) {
+        console.error('加载文章列表失败:', error);
+        
+        if (error.message.includes('requires an index') || error.message.includes('FAILED_PRECONDITION')) {
+          showError(app, '需要创建 Firestore 索引：posts 集合的 status(升序) + createdAt(降序)');
+        } else {
+          showError(app, error.message || '加载文章失败', true, () => renderPostList());
         }
       }
-    }catch(e){ console.warn('loadProfile error', e); }
-  }
-
-  async function fetchPosts(){
-    try{
-      const snap = await db.collection('posts')
-        .where('status','==','published')
-        .orderBy('createdAt','desc').get();
-      return snap.docs.map(d=>({id:d.id, ...d.data()}));
-    }catch(e){
-      const msg=String(e?.message||e);
-      const app=$('#app');
-      if(msg.includes('FAILED_PRECONDITION')||msg.includes('requires an index')){
-        app.innerHTML = '需要创建索引：posts / status(升序) + createdAt(降序)。';
-      }else{ app.innerHTML = '加载失败：' + esc(msg); }
-      return [];
     }
-  }
-  async function fetchPostById(id){ const d=await db.collection('posts').doc(id).get(); return d.exists? {id:d.id,...d.data()}: null; }
 
-  async function renderList(){
-    const app=$('#app'); app.innerHTML='加载文章中…';
-    const posts=await fetchPosts();
-    if(posts.length===0){ app.innerHTML='还没有发布的文章。'; return; }
-    app.innerHTML = `
-      <section>
-        <h2 style="margin:0 0 6px">最新文章</h2>
-        <div class="post-list">
-          ${posts.map(p=>{
-            const preview = strip(p.content||'').slice(0,150) + (strip(p.content||'').length>150?'…':'');
-            const tags = (p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-            return `
-              <article class="card" style="padding:14px">
-                <h3 class="post-title"><a href="#/post/${p.id}">${esc(p.title||'(无标题)')}</a></h3>
-                <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
-                <div class="preview">${esc(preview)}</div>
-              </article>`;
-          }).join('')}
-        </div>
-      </section>`;
-  }
-  async function renderPost(id){
-    const app=$('#app'); app.innerHTML='加载中…';
-    const p=await fetchPostById(id);
-    if(!p || p.status!=='published'){ app.innerHTML='未找到该文章或未发布。<br><a class="back" href="#/">← 返回列表</a>'; return; }
-    const tags=(p.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('');
-    app.innerHTML = `
-      <article>
-        <a class="back" href="#/">← 返回列表</a>
-        <h1>${esc(p.title||'(无标题)')}</h1>
-        <div class="meta">${fmtDate(p.createdAt)} · ${readingTime(p.content||'')} · ${tags}</div>
-        <div class="card" style="margin-top:12px"><div class="content">${p.content||''}</div></div>
-      </article>`;
-  }
-  function route(){ const h=location.hash; if(h.startsWith('#/post/')) renderPost(h.replace('#/post/','')); else renderList(); }
-  (async()=>{ await loadProfile(); route(); })();
-  window.addEventListener('hashchange', route);
+    // 渲染文章卡片
+    function renderPostCard(post) {
+      const excerpt = generateExcerpt(post.contentHtml);
+      const tags = renderTags(post.tags || []);
+      const readingTime = calculateReadingTime(post.contentHtml);
+      const formattedDate = formatDate(post.createdAt);
+      
+      return `
+        <article class="post-card card">
+          ${post.coverUrl ? `
+            <div style="margin: -18px -18px 12px -18px; border-radius: 16px 16px 0 0; overflow: hidden;">
+              <img src="${escapeHtml(post.coverUrl)}" 
+                   alt="${escapeHtml(post.title)}" 
+                   style="width: 100%; height: 200px; object-fit: cover;"
+                   loading="lazy">
+            </div>
+          ` : ''}
+          <h3 class="post-title">
+            <a href="#/post/${post.slug || post.id}">${escapeHtml(post.title || '(无标题)')}</a>
+          </h3>
+          <div class="meta">
+            <span>${formattedDate}</span>
+            <span>·</span>
+            <span>${readingTime}</span>
+            ${tags ? `<span>·</span>${tags}` : ''}
+          </div>
+          ${excerpt ? `<div class="preview">${escapeHtml(excerpt)}</div>` : ''}
+        </article>
+      `;
+    }
+
+    // 渲染文章详情
+    async function renderPostDetail(key) {
+      const app = $('#app');
+      showLoading(app, '加载文章中...');
+      
+      try {
+        const post = await getPostByIdOrSlug(key);
+        
+        if (!post || post.status !== 'published') {
+          app.innerHTML = `
+            <div class="empty-state">
+              <h3>文章未找到</h3>
+              <p>该文章可能已被删除或尚未发布</p>
+              <a class="back" href="#/">← 返回列表</a>
+            </div>
+          `;
+          return;
+        }
+
+        const tags = renderTags(post.tags || []);
+        const readingTime = calculateReadingTime(post.contentHtml);
+        const formattedDate = formatDate(post.createdAt);
+        
+        app.innerHTML = `
+          <article>
+            <a class="back" href="#/">← 返回列表</a>
+            
+            ${post.coverUrl ? `
+              <div style="margin: 16px 0; border-radius: 16px; overflow: hidden;">
+                <img src="${escapeHtml(post.coverUrl)}" 
+                     alt="${escapeHtml(post.title)}" 
+                     style="width: 100%; height: 300px; object-fit: cover;"
+                     loading="lazy">
+              </div>
+            ` : ''}
+            
+            <header style="margin-bottom: 24px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 32px; line-height: 1.2;">
+                ${escapeHtml(post.title || '(无标题)')}
+              </h1>
+              <div class="meta" style="font-size: 14px;">
+                <span>${formattedDate}</span>
+                <span>·</span>
+                <span>${readingTime}</span>
+                ${tags ? `<span>·</span>${tags}` : ''}
+              </div>
+            </header>
+            
+            <div class="card">
+              <div class="content">${sanitizeHtml(post.contentHtml || '')}</div>
+            </div>
+          </article>
+        `;
+
+        // 懒加载图片
+        lazyLoadImages(app);
+        
+        // 设置页面标题和元数据
+        setPageTitle(post.title);
+        setPageMeta({
+          title: post.title,
+          description: generateExcerpt(post.contentHtml, 160),
+          image: post.coverUrl,
+          url: window.location.href
+        });
+        
+      } catch (error) {
+        console.error('加载文章详情失败:', error);
+        showError(app, error.message || '加载文章失败', true, () => renderPostDetail(key));
+      }
+    }
+
+    // 基本 HTML 消毒
+    function sanitizeHtml(html) {
+      if (!html) return '';
+      
+      const allowedTags = ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 
+                          'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'img', 'a'];
+      const allowedAttrs = {
+        'img': ['src', 'alt', 'title', 'width', 'height'],
+        'a': ['href', 'title', 'target', 'rel']
+      };
+      
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      
+      // 移除不允许的标签和属性
+      const walker = document.createTreeWalker(
+        div,
+        NodeFilter.SHOW_ELEMENT,
+        null,
+        false
+      );
+      
+      const nodesToRemove = [];
+      let node;
+      
+      while (node = walker.nextNode()) {
+        const tagName = node.tagName.toLowerCase();
+        
+        if (!allowedTags.includes(tagName)) {
+          nodesToRemove.push(node);
+          continue;
+        }
+        
+        // 清理属性
+        const attrs = Array.from(node.attributes);
+        attrs.forEach(attr => {
+          const attrName = attr.name.toLowerCase();
+          const allowed = allowedAttrs[tagName] || [];
+          
+          if (!allowed.includes(attrName)) {
+            node.removeAttribute(attr.name);
+          }
+        });
+        
+        // 为外链添加安全属性
+        if (tagName === 'a' && node.getAttribute('href')) {
+          const href = node.getAttribute('href');
+          if (href.startsWith('http') && !href.includes(window.location.hostname)) {
+            node.setAttribute('target', '_blank');
+            node.setAttribute('rel', 'noopener noreferrer');
+          }
+        }
+        
+        // 为图片添加懒加载
+        if (tagName === 'img') {
+          node.setAttribute('loading', 'lazy');
+        }
+      }
+      
+      // 移除不允许的节点
+      nodesToRemove.forEach(node => {
+        if (node.parentNode) {
+          node.parentNode.removeChild(node);
+        }
+      });
+      
+      return div.innerHTML;
+    }
+
+    // 设置路由
+    router.addRoute('/', renderPostList);
+    router.addRoute('/post/:key', (params) => renderPostDetail(params.key));
+
+    // 初始化应用
+    async function initApp() {
+      await loadSiteProfile();
+    }
+
+    // 启动应用
+    initApp();
   </script>
 </body>
 </html>

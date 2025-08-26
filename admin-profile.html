@@ -1,160 +1,523 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>作者资料 · Profile</title>
-  <style>
-    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--glass:rgba(255,255,255,.06);--r:16px;--brand:#7aa2ff;--accent:#b892ff}
-    *{box-sizing:border-box}
-    body{margin:0;color:var(--fg);font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      background:radial-gradient(1100px 600px at 90% -10%, rgba(186,146,255,.15), transparent 40%),
-                 radial-gradient(1200px 700px at -10% 10%, rgba(122,162,255,.15), transparent 35%), #0b0b12;min-height:100vh}
-    .wrap{max-width:980px;margin:0 auto;padding:28px}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-    .nav a{color:#cfd8ff;margin-left:14px;text-decoration:none} .nav a:hover{text-decoration:underline}
-    .card{backdrop-filter:blur(10px);background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      border:1px solid var(--glass);border-radius:var(--r);padding:18px;margin-bottom:16px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    label{display:block;margin-bottom:6px;color:#cfd3ff;font-size:13px}
-    input,textarea,button{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f0f17;color:var(--fg)}
-    .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    img.avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.2)}
-    .muted{color:var(--muted)} .hidden{display:none}
-    .chip{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(186,146,255,.18);margin-right:6px;font-size:12px}
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>作者资料 - 我的博客</title>
+  <meta name="description" content="管理作者资料与站点设置">
+  <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h2 style="margin:0">作者资料</h2>
-      <div class="nav">
-        <a href="index.html">首页</a>
-        <a href="admin-editor.html">→ 去创作发布</a>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <img id="user-avatar" alt="用户头像" loading="lazy">
+        </div>
+        <div>
+          <h1 class="title">作者资料</h1>
+          <div class="bio" id="user-info">未登录</div>
+        </div>
       </div>
+      <nav>
+        <a href="index.html">返回首页</a>
+        <a href="admin-editor.html">创作发布</a>
+        <button id="auth-btn" class="btn">登录</button>
+      </nav>
     </header>
 
-    <section class="card" id="auth">
-      <div class="flex">
-        <span id="who" class="muted">未登录</span>
-        <button id="btnGitHub">GitHub 登录</button>
-        <button id="btnEmail">邮箱登录</button>
-        <button id="btnLogout" class="hidden">退出</button>
+    <!-- 登录界面 -->
+    <div id="login-section" class="card">
+      <h2 style="margin-top: 0;">登录</h2>
+      <p>请登录以管理您的资料和站点设置。</p>
+      
+      <div class="form-group">
+        <button id="github-login" class="btn" style="width:100%;margin-bottom:12px;">
+          GitHub 登录
+        </button>
       </div>
-      <div class="muted" style="margin-top:6px">此页任何登录用户都可编辑自己的资料。</div>
-    </section>
+      
+      <div style="text-align:center;margin:16px 0;color:var(--muted);position:relative;">
+        <span style="background:var(--card);padding:0 12px;">或</span>
+        <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:var(--border);z-index:-1;"></div>
+      </div>
+      
+      <form id="email-login-form">
+        <div class="form-group">
+          <label class="form-label" for="email">邮箱</label>
+          <input type="email" id="email" class="form-input" required placeholder="your@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">密码</label>
+          <input type="password" id="password" class="form-input" required placeholder="请输入密码">
+        </div>
+        <button type="submit" class="btn" style="width:100%;">邮箱登录</button>
+      </form>
+      
+      <div id="login-error" class="form-error" style="display:none;"></div>
+    </div>
 
-    <section class="card hidden" id="profile">
-      <h3 style="margin-top:0">基本信息</h3>
-      <div class="flex" style="margin:8px 0 12px">
-        <img id="avatar" class="avatar" alt="avatar" src=""/>
-        <input type="file" id="avatarFile" accept="image/*" style="max-width:260px">
-        <button id="btnAvatar">上传头像（Cloudinary）</button>
+    <!-- 资料编辑界面 -->
+    <div id="profile-section" style="display:none;">
+      <div class="card">
+        <h2 style="margin-top: 0;">基本信息</h2>
+        <form id="profile-form">
+          <div class="form-group">
+            <label class="form-label" for="displayName">显示名称 *</label>
+            <input type="text" id="displayName" class="form-input" maxlength="40" placeholder="您的名字" required>
+            <div id="displayName-error" class="form-error" style="display:none;"></div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="nickname">昵称</label>
+            <input type="text" id="nickname" class="form-input" maxlength="40" placeholder="昵称（可选）">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="bio">简介</label>
+            <textarea id="bio" class="form-textarea" maxlength="500" placeholder="介绍一下自己..." rows="4"></textarea>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+              <span id="bio-count">0</span>/500
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">标签</label>
+            <div id="tags-input" class="tag-input">
+              <input type="text" placeholder="输入标签，按回车或逗号添加" maxlength="16">
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+              最多10个标签，每个标签不超过16字符
+            </div>
+            <div id="tags-error" class="form-error" style="display:none;"></div>
+          </div>
+          
+          <button type="submit" class="btn" id="save-profile-btn">
+            保存基本信息
+          </button>
+          <div id="profile-message" style="display:none;"></div>
+        </form>
       </div>
-      <div class="row">
-        <div>
-          <label>姓名 / 显示名</label>
-          <input id="displayName" placeholder="例如：张三">
-        </div>
-        <div>
-          <label>昵称（可选）</label>
-          <input id="nickname" placeholder="例如：阿三">
-        </div>
-      </div>
-      <label>标签（逗号分隔）</label>
-      <input id="tags" placeholder="前端, 摄影, 篮球">
-      <div id="chips" style="margin-top:6px"></div>
-      <label style="margin-top:8px">个人简介</label>
-      <textarea id="bio" rows="4" placeholder="一句话介绍或简历摘要"></textarea>
-      <div class="flex" style="margin-top:8px">
-        <button id="btnSave" style="background:#113116;border-color:#245a2c">保存资料</button>
-        <span id="msg" class="muted"></span>
-      </div>
-    </section>
 
-    <section class="card hidden" id="bgsec">
-      <h3 style="margin-top:0">背景图（可选）</h3>
-      <div class="row">
-        <div>
-          <label>站点整体背景（首页等）</label>
-          <div class="flex">
-            <input type="file" id="siteBgFile" accept="image/*" style="max-width:260px">
-            <button id="btnSiteBg">上传并应用</button>
+      <div class="card">
+        <h2 style="margin-top: 0;">头像设置</h2>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+          <img id="current-avatar" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" alt="当前头像">
+          <div style="flex:1;">
+            <button id="upload-avatar-btn" class="btn">选择头像</button>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">
+              支持 JPG、PNG、GIF、WebP，最大 5MB
+            </div>
           </div>
-          <div class="muted" style="margin-top:6px">字段：<code>siteBgUrl</code>（index.html 会自动读取并应用）</div>
         </div>
-        <div>
-          <label>作者页背景（当前页）</label>
-          <div class="flex">
-            <input type="file" id="authorBgFile" accept="image/*" style="max-width:260px">
-            <button id="btnAuthorBg">上传并应用</button>
+        <input type="file" id="avatar-input" accept="image/*" style="display:none;">
+        <div id="avatar-message" style="display:none;"></div>
+      </div>
+
+      <div class="card">
+        <h2 style="margin-top: 0;">背景设置</h2>
+        
+        <div class="form-group">
+          <h3 style="margin-bottom:8px;">站点背景（首页）</h3>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+            <button id="upload-site-bg-btn" class="btn btn-secondary">选择背景图</button>
+            <span style="font-size:12px;color:var(--muted);">将作为首页背景显示</span>
           </div>
-          <div class="muted" style="margin-top:6px">字段：<code>authorBgUrl</code>（登录后立即预览）</div>
+          <input type="file" id="site-bg-input" accept="image/*" style="display:none;">
+          <div id="site-bg-preview" style="display:none;margin-top:8px;">
+            <img style="max-width:100%;height:auto;border-radius:8px;" alt="站点背景预览">
+          </div>
+          <div id="site-bg-message" style="display:none;"></div>
+        </div>
+        
+        <div class="form-group">
+          <h3 style="margin-bottom:8px;">作者页背景（本页）</h3>
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+            <button id="upload-author-bg-btn" class="btn btn-secondary">选择背景图</button>
+            <span style="font-size:12px;color:var(--muted);">上传后立即预览</span>
+          </div>
+          <input type="file" id="author-bg-input" accept="image/*" style="display:none;">
+          <div id="author-bg-preview" style="display:none;margin-top:8px;">
+            <img style="max-width:100%;height:auto;border-radius:8px;" alt="作者页背景预览">
+          </div>
+          <div id="author-bg-message" style="display:none;"></div>
         </div>
       </div>
-    </section>
+    </div>
   </div>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script>
-  // Firebase（你的）
-  const firebaseConfig = {
-    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
-    authDomain: "project-9037683069333256481.firebaseapp.com",
-    projectId: "project-9037683069333256481",
-    appId: "1:256096740039:web:875a84e72fb0858354d4e2"
-  };
-  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"];
+  
+  <!-- 应用模块 -->
+  <script type="module">
+    import './js/firebase.js';
+    import { 
+      onAuthChange, 
+      signInWithGitHub, 
+      signInWithEmail, 
+      signOut, 
+      getCurrentUser 
+    } from './js/auth.js';
+    import { 
+      getOrCreateProfile, 
+      updateMyProfile, 
+      formatTagsInput, 
+      tagsToString 
+    } from './js/api.profile.js';
+    import { 
+      uploadAvatar, 
+      uploadBackground, 
+      selectImageFile 
+    } from './js/upload.js';
+    import { 
+      $, 
+      showToast, 
+      applySiteBg 
+    } from './js/render.js';
 
-  // Cloudinary（把 YOUR_CLOUD_NAME 改成你 Dashboard 里的 Cloud name）
-  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
+    // 状态管理
+    let currentUser = null;
+    let currentProfile = null;
+    let tags = [];
 
-  firebase.initializeApp(firebaseConfig);
-  const auth=firebase.auth(); const db=firebase.firestore();
-  const $=(s,r=document)=>r.querySelector(s);
-  const who=$('#who'), box=$('#profile'), bg=$('#bgsec');
+    // DOM 元素
+    const loginSection = $('#login-section');
+    const profileSection = $('#profile-section');
+    const authBtn = $('#auth-btn');
+    const userInfo = $('#user-info');
+    const userAvatar = $('#user-avatar');
+    const bioTextarea = $('#bio');
+    const bioCount = $('#bio-count');
+    const tagsInput = $('#tags-input input');
+    const tagsContainer = $('#tags-input');
 
-  $('#btnGitHub').onclick=async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message);} };
-  $('#btnEmail').onclick=async()=>{ const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return;
-    try{ await auth.signInWithEmailAndPassword(email, pass);}catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message);} };
-  $('#btnLogout').onclick=()=>auth.signOut();
+    // 初始化
+    function init() {
+      setupEventListeners();
+      setupAuthStateListener();
+      setupFormValidation();
+    }
 
-  auth.onAuthStateChanged(async user=>{
-    const logged=!!user; who.textContent=logged?(user.displayName||user.email||user.uid):'未登录';
-    $('#btnLogout').classList.toggle('hidden',!logged); $('#btnGitHub').classList.toggle('hidden',logged); $('#btnEmail').classList.toggle('hidden',logged);
-    if(!logged){ box.classList.add('hidden'); bg.classList.add('hidden'); return; }
+    // 设置事件监听器
+    function setupEventListeners() {
+      // 登录相关
+      $('#github-login').addEventListener('click', handleGitHubLogin);
+      $('#email-login-form').addEventListener('submit', handleEmailLogin);
+      authBtn.addEventListener('click', handleAuthButtonClick);
 
-    box.classList.remove('hidden'); bg.classList.remove('hidden');
-    const ref=db.collection('profiles').doc(user.uid); const s=await ref.get(); const p=s.exists?s.data():{};
-    $('#displayName').value=p.displayName||''; $('#nickname').value=p.nickname||''; $('#bio').value=p.bio||''; $('#tags').value=(p.tags||[]).join(', ');
-    $('#avatar').src=p.photoURL||user.photoURL||'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="76" height="76"><rect width="100%" height="100%" fill="%230f0f17"/><text x="50%" y="56%" font-size="12" fill="%23a3a3b2" text-anchor="middle">no avatar</text></svg>';
-    renderChips(p.tags||[]);
-    if(p.authorBgUrl){ document.body.style.background=`linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${p.authorBgUrl}') center/cover fixed no-repeat, #0b0b12`; }
+      // 资料表单
+      $('#profile-form').addEventListener('submit', handleProfileSubmit);
+      
+      // 字符计数
+      bioTextarea.addEventListener('input', updateBioCount);
+      
+      // 标签输入
+      tagsInput.addEventListener('keydown', handleTagInput);
+      
+      // 头像上传
+      $('#upload-avatar-btn').addEventListener('click', () => $('#avatar-input').click());
+      $('#avatar-input').addEventListener('change', handleAvatarUpload);
+      
+      // 背景上传
+      $('#upload-site-bg-btn').addEventListener('click', () => $('#site-bg-input').click());
+      $('#site-bg-input').addEventListener('change', (e) => handleBackgroundUpload(e, 'site'));
+      
+      $('#upload-author-bg-btn').addEventListener('click', () => $('#author-bg-input').click());
+      $('#author-bg-input').addEventListener('change', (e) => handleBackgroundUpload(e, 'author'));
+    }
 
-    $('#btnSave').onclick=async()=>{
-      const doc={ displayName:$('#displayName').value.trim(), nickname:$('#nickname').value.trim(), bio:$('#bio').value.trim(),
-        tags:$('#tags').value.split(',').map(s=>s.trim()).filter(Boolean), photoURL:$('#avatar').src };
-      await ref.set(doc,{merge:true}); renderChips(doc.tags); tip('已保存');
-    };
-    $('#btnAvatar').onclick=async()=>{ const f=$('#avatarFile').files[0]; if(!f) return alert('请选择文件');
-      const url=await upload(f,`avatars/${user.uid}`); $('#avatar').src=url; await ref.set({photoURL:url},{merge:true}); tip('头像已更新'); };
-    $('#btnSiteBg').onclick=async()=>{ const f=$('#siteBgFile').files[0]; if(!f) return alert('请选择图片');
-      const url=await upload(f,`backgrounds/${user.uid}`); await ref.set({siteBgUrl:url},{merge:true}); tip('站点背景已更新'); };
-    $('#btnAuthorBg').onclick=async()=>{ const f=$('#authorBgFile').files[0]; if(!f) return alert('请选择图片');
-      const url=await upload(f,`backgrounds/${user.uid}`); await ref.set({authorBgUrl:url},{merge:true});
-      document.body.style.background=`linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04)), url('${url}') center/cover fixed no-repeat, #0b0b12`;
-      tip('作者页背景已更新'); };
-  });
+    // 设置认证状态监听
+    function setupAuthStateListener() {
+      onAuthChange(async (user) => {
+        currentUser = user;
+        await updateUI();
+        if (user) {
+          await loadUserProfile();
+        }
+      });
+    }
 
-  function renderChips(tags){ $('#chips').innerHTML=(tags||[]).map(t=>`<span class="chip">${t}</span>`).join(''); }
-  function tip(t){ const m=$('#msg'); m.textContent=t; setTimeout(()=>m.textContent='',1500); }
-  async function upload(file,folder){
-    const form=new FormData(); form.append('file',file); form.append('upload_preset',CLOUDINARY.unsignedPreset); if(folder) form.append('folder',folder);
-    const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`,{method:'POST',body:form});
-    const d=await r.json(); if(!r.ok||!d.secure_url) throw new Error(d.error?.message||'上传失败'); return d.secure_url;
-  }
+    // 设置表单验证
+    function setupFormValidation() {
+      const displayNameInput = $('#displayName');
+      displayNameInput.addEventListener('input', () => {
+        const error = $('#displayName-error');
+        if (displayNameInput.value.trim().length === 0) {
+          error.textContent = '显示名称不能为空';
+          error.style.display = 'block';
+        } else if (displayNameInput.value.length > 40) {
+          error.textContent = '显示名称不能超过40个字符';
+          error.style.display = 'block';
+        } else {
+          error.style.display = 'none';
+        }
+      });
+    }
+
+    // 更新UI状态
+    async function updateUI() {
+      if (currentUser) {
+        loginSection.style.display = 'none';
+        profileSection.style.display = 'block';
+        authBtn.textContent = '登出';
+        userInfo.textContent = currentUser.displayName || currentUser.email || '已登录';
+        
+        if (currentUser.photoURL) {
+          userAvatar.src = currentUser.photoURL;
+        }
+      } else {
+        loginSection.style.display = 'block';
+        profileSection.style.display = 'none';
+        authBtn.textContent = '登录';
+        userInfo.textContent = '未登录';
+        userAvatar.src = '';
+      }
+    }
+
+    // 加载用户资料
+    async function loadUserProfile() {
+      if (!currentUser) return;
+      
+      try {
+        currentProfile = await getOrCreateProfile(currentUser);
+        fillProfileForm();
+        updateBackgrounds();
+      } catch (error) {
+        console.error('加载用户资料失败:', error);
+        showToast('加载资料失败: ' + error.message, 'error');
+      }
+    }
+
+    // 填充表单数据
+    function fillProfileForm() {
+      if (!currentProfile) return;
+      
+      $('#displayName').value = currentProfile.displayName || '';
+      $('#nickname').value = currentProfile.nickname || '';
+      $('#bio').value = currentProfile.bio || '';
+      
+      tags = [...(currentProfile.tags || [])];
+      renderTags();
+      updateBioCount();
+      
+      // 更新头像显示
+      const avatarUrl = currentProfile.photoURL || currentUser?.photoURL || '';
+      $('#current-avatar').src = avatarUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="100%" height="100%" fill="%23666"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white">无头像</text></svg>';
+      
+      // 更新背景预览
+      if (currentProfile.siteBgUrl) {
+        showImagePreview('site-bg-preview', currentProfile.siteBgUrl);
+      }
+      if (currentProfile.authorBgUrl) {
+        showImagePreview('author-bg-preview', currentProfile.authorBgUrl);
+      }
+    }
+
+    // 更新背景
+    function updateBackgrounds() {
+      if (currentProfile?.authorBgUrl) {
+        applySiteBg(currentProfile.authorBgUrl);
+      }
+    }
+
+    // 登录处理
+    async function handleGitHubLogin() {
+      try {
+        await signInWithGitHub();
+      } catch (error) {
+        showError('login-error', error.message);
+      }
+    }
+
+    async function handleEmailLogin(e) {
+      e.preventDefault();
+      const email = $('#email').value;
+      const password = $('#password').value;
+      
+      try {
+        await signInWithEmail(email, password);
+      } catch (error) {
+        showError('login-error', error.message);
+      }
+    }
+
+    function handleAuthButtonClick() {
+      if (currentUser) {
+        signOut();
+      } else {
+        loginSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // 资料表单提交
+    async function handleProfileSubmit(e) {
+      e.preventDefault();
+      
+      if (!currentUser) return;
+      
+      const saveBtn = $('#save-profile-btn');
+      const originalText = saveBtn.textContent;
+      
+      try {
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+        
+        const profileData = {
+          displayName: $('#displayName').value.trim(),
+          nickname: $('#nickname').value.trim(),
+          bio: $('#bio').value.trim(),
+          tags: tags
+        };
+        
+        await updateMyProfile(profileData);
+        currentProfile = { ...currentProfile, ...profileData };
+        
+        showMessage('profile-message', '保存成功！', 'success');
+      } catch (error) {
+        showMessage('profile-message', '保存失败: ' + error.message, 'error');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    }
+
+    // 字符计数更新
+    function updateBioCount() {
+      const count = bioTextarea.value.length;
+      bioCount.textContent = count;
+      
+      if (count > 500) {
+        bioCount.style.color = 'var(--error)';
+      } else {
+        bioCount.style.color = 'var(--muted)';
+      }
+    }
+
+    // 标签输入处理
+    function handleTagInput(e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTag(e.target.value.trim());
+        e.target.value = '';
+      }
+    }
+
+    function addTag(tag) {
+      if (!tag || tags.includes(tag) || tags.length >= 10 || tag.length > 16) {
+        return;
+      }
+      
+      tags.push(tag);
+      renderTags();
+    }
+
+    function removeTag(index) {
+      tags.splice(index, 1);
+      renderTags();
+    }
+
+    function renderTags() {
+      const existingTags = tagsContainer.querySelectorAll('.tag');
+      existingTags.forEach(tag => tag.remove());
+      
+      tags.forEach((tag, index) => {
+        const tagEl = document.createElement('span');
+        tagEl.className = 'tag';
+        tagEl.innerHTML = `${tag} <span style="cursor:pointer;margin-left:4px;" onclick="window.removeTag(${index})">×</span>`;
+        tagsContainer.insertBefore(tagEl, tagsInput);
+      });
+    }
+
+    // 头像上传
+    async function handleAvatarUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      try {
+        showMessage('avatar-message', '上传中...', 'info');
+        
+        const result = await uploadAvatar(file);
+        
+        await updateMyProfile({ photoURL: result.url });
+        currentProfile.photoURL = result.url;
+        
+        $('#current-avatar').src = result.url;
+        
+        showMessage('avatar-message', '头像上传成功！', 'success');
+      } catch (error) {
+        showMessage('avatar-message', '头像上传失败: ' + error.message, 'error');
+      }
+    }
+
+    // 背景上传
+    async function handleBackgroundUpload(e, type) {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      const messageId = `${type === 'site' ? 'site-bg' : 'author-bg'}-message`;
+      const previewId = `${type === 'site' ? 'site-bg' : 'author-bg'}-preview`;
+      
+      try {
+        showMessage(messageId, '上传中...', 'info');
+        
+        const result = await uploadBackground(file);
+        
+        const updateData = {};
+        if (type === 'site') {
+          updateData.siteBgUrl = result.url;
+        } else {
+          updateData.authorBgUrl = result.url;
+        }
+        
+        await updateMyProfile(updateData);
+        Object.assign(currentProfile, updateData);
+        
+        showImagePreview(previewId, result.url);
+        
+        if (type === 'author') {
+          applySiteBg(result.url);
+        }
+        
+        showMessage(messageId, '背景上传成功！', 'success');
+      } catch (error) {
+        showMessage(messageId, '背景上传失败: ' + error.message, 'error');
+      }
+    }
+
+    // 显示图片预览
+    function showImagePreview(containerId, url) {
+      const container = $(`#${containerId}`);
+      const img = container.querySelector('img');
+      img.src = url;
+      container.style.display = 'block';
+    }
+
+    // 显示消息
+    function showMessage(elementId, message, type) {
+      const element = $(`#${elementId}`);
+      element.textContent = message;
+      element.className = `form-${type}`;
+      element.style.display = 'block';
+      
+      if (type === 'success' || type === 'info') {
+        setTimeout(() => {
+          element.style.display = 'none';
+        }, 3000);
+      }
+    }
+
+    function showError(elementId, message) {
+      showMessage(elementId, message, 'error');
+    }
+
+    // 全局函数
+    window.removeTag = removeTag;
+
+    // 启动应用
+    init();
   </script>
 </body>
 </html>

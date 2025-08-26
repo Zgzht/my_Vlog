@@ -4,169 +4,540 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>创作发布 · Editor</title>
+  <link rel="stylesheet" href="css/main.css">
   <style>
-    :root{--bg:#0b0b12;--fg:#e9e9ee;--muted:#a3a3b2;--glass:rgba(255,255,255,.06);--r:16px;--brand:#7aa2ff;--accent:#b892ff}
-    *{box-sizing:border-box}
-    body{margin:0;color:var(--fg);font:15px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      background:radial-gradient(1100px 600px at 90% -10%, rgba(186,146,255,.15), transparent 40%),
-                 radial-gradient(1200px 700px at -10% 10%, rgba(122,162,255,.15), transparent 35%), #0b0b12;min-height:100vh}
-    .wrap{max-width:980px;margin:0 auto;padding:28px}
-    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-    .nav a{color:#cfd8ff;margin-left:14px;text-decoration:none} .nav a:hover{text-decoration:underline}
-    .card{backdrop-filter:blur(10px);background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
-      border:1px solid var(--glass);border-radius:var(--r);padding:18px;margin-bottom:16px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    input,textarea,button{width:100%;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:#0f0f17;color:var(--fg)}
-    .muted{color:var(--muted)}
-    .list{display:grid;gap:10px} .item{display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px dashed rgba(255,255,255,.15);border-radius:12px}
-    .right{display:flex;gap:8px}
-    .ok{background:#113116;border-color:#245a2c} .warn{background:#3a2a11;border-color:#6c4f1e} .err{background:#3a1411;border-color:#6c241e}
-    .hidden{display:none}
-    .fab{position:fixed;right:22px;bottom:22px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));
-         display:flex;align-items:center;justify-content:center;color:#0b0b12;font-size:28px;font-weight:800;box-shadow:0 14px 28px rgba(109,150,255,.35)}
+    /* Editor specific styles */
+    .editor-container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .editor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    
+    .editor-nav a {
+      color: var(--accent);
+      margin-left: 1rem;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .editor-nav a:hover {
+      color: var(--primary);
+      text-decoration: underline;
+    }
+    
+    .editor-form {
+      display: grid;
+      gap: 1.5rem;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    
+    .content-editor {
+      min-height: 300px;
+      resize: vertical;
+    }
+    
+    .toolbar {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .posts-list {
+      display: grid;
+      gap: 1rem;
+    }
+    
+    .post-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem;
+      border: 1px dashed rgba(255,255,255,.15);
+      border-radius: 12px;
+      transition: border-color 0.2s;
+    }
+    
+    .post-item:hover {
+      border-color: var(--primary);
+    }
+    
+    .post-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .fab {
+      position: fixed;
+      right: 2rem;
+      bottom: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg);
+      font-size: 1.5rem;
+      font-weight: 800;
+      box-shadow: 0 8px 24px rgba(122, 162, 255, 0.35);
+      cursor: pointer;
+      border: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .fab:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 32px rgba(122, 162, 255, 0.45);
+    }
+    
+    .status-badge {
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .status-draft {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+    }
+    
+    .status-published {
+      background: rgba(40, 167, 69, 0.2);
+      color: #28a745;
+    }
+    
+    .char-count {
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-align: right;
+    }
+    
+    .char-count.warning {
+      color: var(--warning);
+    }
+    
+    .char-count.error {
+      color: var(--error);
+    }
+    
+    .image-upload-area {
+      border: 2px dashed rgba(255,255,255,.15);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    
+    .image-upload-area:hover {
+      border-color: var(--primary);
+    }
+    
+    .image-upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(186, 146, 255, 0.1);
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .editor-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      
+      .toolbar {
+        justify-content: center;
+      }
+      
+      .post-item {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+      
+      .post-actions {
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h2 style="margin:0">创作发布</h2>
-      <div class="nav">
+  <div class="editor-container">
+    <header class="editor-header">
+      <h1>创作发布</h1>
+      <nav class="editor-nav">
         <a href="index.html">首页</a>
         <a href="admin-profile.html">作者资料</a>
-      </div>
+        <button id="auth-btn" class="btn btn-outline">登录</button>
+      </nav>
     </header>
 
-    <section id="auth" class="card">
-      <div class="muted">只有白名单账号可以写作/发布。</div>
-      <div style="margin-top:8px">
-        <button id="btnGitHub">GitHub 登录</button>
-        <button id="btnEmail">邮箱登录</button>
-        <button id="btnLogout" class="hidden">退出</button>
-        <span id="who" class="muted" style="margin-left:8px"></span>
+    <!-- 登录区域 -->
+    <section id="login-section" class="card">
+      <h2>身份验证</h2>
+      <p class="text-muted">只有授权用户可以创建和发布文章</p>
+      
+      <div class="form-group">
+        <button id="github-login" class="btn btn-primary">
+          <span>GitHub 登录</span>
+        </button>
+      </div>
+      
+      <div class="divider">或</div>
+      
+      <form id="email-login-form" class="form">
+        <div class="form-group">
+          <label for="email">邮箱</label>
+          <input type="email" id="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input type="password" id="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary">邮箱登录</button>
+      </form>
+      
+      <div id="login-error" class="form-error" style="display: none;"></div>
+    </section>
+
+    <!-- 编辑器区域 -->
+    <section id="editor-section" class="card" style="display: none;">
+      <div class="card-header">
+        <h2 id="editor-title">新建文章</h2>
+        <div class="card-actions">
+          <button id="clear-btn" class="btn btn-outline btn-sm">清空</button>
+          <button id="auto-save-toggle" class="btn btn-outline btn-sm">自动保存: 开</button>
+        </div>
+      </div>
+      
+      <form id="post-form" class="editor-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="post-title">文章标题 *</label>
+            <input type="text" id="post-title" required maxlength="100">
+            <div class="char-count"><span id="title-count">0</span>/100</div>
+          </div>
+          <div class="form-group">
+            <label for="post-slug">URL 别名</label>
+            <input type="text" id="post-slug" placeholder="自动生成">
+            <small class="form-help">留空则根据标题自动生成</small>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="post-tags">标签</label>
+          <div id="tags-input" class="tags-input">
+            <input type="text" placeholder="输入标签后按回车">
+          </div>
+          <small class="form-help">最多10个标签，每个标签最长16个字符</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="cover-url">封面图片</label>
+          <div class="image-upload-area" id="cover-upload-area">
+            <p>点击或拖拽上传封面图片</p>
+            <small>支持 JPG, PNG, WebP 格式，建议尺寸 1200x630</small>
+          </div>
+          <input type="file" id="cover-input" accept="image/*" style="display: none;">
+          <div id="cover-preview" style="display: none;">
+            <img src="" alt="封面预览" style="max-width: 100%; height: auto; border-radius: 8px;">
+            <button type="button" id="remove-cover" class="btn btn-outline btn-sm">移除封面</button>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="post-content">文章内容 *</label>
+          <textarea id="post-content" class="content-editor" required placeholder="开始写作..."></textarea>
+          <div class="char-count"><span id="content-count">0</span> 字符</div>
+        </div>
+        
+        <div class="toolbar">
+          <button type="button" id="upload-image-btn" class="btn btn-outline btn-sm">插入图片</button>
+          <input type="file" id="image-input" accept="image/*" style="display: none;">
+          <button type="button" id="preview-btn" class="btn btn-outline btn-sm">预览</button>
+          <div class="toolbar-spacer"></div>
+          <button type="button" id="save-draft-btn" class="btn btn-secondary">保存草稿</button>
+          <button type="button" id="publish-btn" class="btn btn-primary">发布文章</button>
+        </div>
+        
+        <div id="editor-message" class="form-message" style="display: none;"></div>
+      </form>
+    </section>
+
+    <!-- 文章列表区域 -->
+    <section id="posts-section" class="card" style="display: none;">
+      <div class="card-header">
+        <h2>我的文章</h2>
+        <div class="card-actions">
+          <select id="status-filter" class="form-select">
+            <option value="">全部状态</option>
+            <option value="draft">草稿</option>
+            <option value="published">已发布</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="posts-list" class="posts-list">
+        <div class="loading">加载中...</div>
       </div>
     </section>
 
-    <section id="editor" class="card hidden">
-      <h3 style="margin-top:0">新建文章</h3>
-      <div class="row">
-        <div><label>标题</label><input id="title" placeholder="文章标题"></div>
-        <div><label>标签（逗号分隔）</label><input id="tags" placeholder="技术, 随笔"></div>
+    <!-- 预览模态框 -->
+    <div id="preview-modal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>文章预览</h3>
+          <button id="close-preview" class="btn btn-outline btn-sm">关闭</button>
+        </div>
+        <div id="preview-content" class="modal-body"></div>
       </div>
-      <label>正文（支持 HTML；下方“上传图片并插入”）</label>
-      <textarea id="content" rows="10" placeholder="<p>写点什么...</p>"></textarea>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <input type="file" id="imgFile" accept="image/*" style="max-width:300px">
-        <button id="btnUploadImg">上传图片并插入</button>
-        <span id="imgMsg" class="muted"></span>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-        <button id="btnDraft" class="ok">保存草稿</button>
-        <button id="btnPublish" class="ok">直接发布</button>
-        <button id="btnClear" class="warn">清空</button>
-        <span id="editMsg" class="muted"></span>
-      </div>
-    </section>
-
-    <section id="mine" class="card hidden">
-      <h3 style="margin-top:0">我的文章</h3>
-      <div id="list" class="list"></div>
-    </section>
+    </div>
   </div>
 
-  <button class="fab" id="openCreate" title="新建文章">＋</button>
+  <button class="fab" id="new-post-fab" title="新建文章" style="display: none;">+</button>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script>
-  // Firebase（你的）
-  const firebaseConfig = {
-    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
-    authDomain: "project-9037683069333256481.firebaseapp.com",
-    projectId: "project-9037683069333256481",
-    appId: "1:256096740039:web:875a84e72fb0858354d4e2"
-  };
-  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"];
+  
+  <!-- 应用模块 -->
+  <script type="module">
+    import './js/firebase.js';
+    import { 
+      onAuthChange, 
+      signInWithGitHub, 
+      signInWithEmail, 
+      signOut, 
+      getCurrentUser,
+      isAdmin 
+    } from './js/auth.js';
+    import { 
+      listMyPosts, 
+      createPost, 
+      updatePost, 
+      deletePost, 
+      publishPost, 
+      unpublishPost,
+      generateSlug,
+      validatePost
+    } from './js/api.posts.js';
+    import { 
+      uploadPostImage, 
+      uploadCover 
+    } from './js/upload.js';
+    import { 
+      $, 
+      showToast, 
+      formatDate, 
+      stripHtml,
+      debounce,
+      confirmAction,
+      sanitizeHtml
+    } from './js/render.js';
 
-  // Cloudinary（把 YOUR_CLOUD_NAME 改成你的 Cloud name；预设名用 blog_unsigned）
-  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
+    // 应用状态
+    let currentUser = null;
+    let currentPost = null;
+    let posts = [];
+    let tags = [];
+    let autoSaveEnabled = true;
+    let hasUnsavedChanges = false;
 
-  firebase.initializeApp(firebaseConfig);
-  const auth=firebase.auth(); const db=firebase.firestore();
-  const $=(s,r=document)=>r.querySelector(s);
+    // DOM 元素
+    const loginSection = $('#login-section');
+    const editorSection = $('#editor-section');
+    const postsSection = $('#posts-section');
+    const authBtn = $('#auth-btn');
+    const newPostFab = $('#new-post-fab');
 
-  // 登录
-  $('#btnGitHub').onclick=async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GithubAuthProvider()); }catch(e){ alert('GitHub 登录失败：'+e.message);} };
-  $('#btnEmail').onclick=async()=>{ const email=prompt('邮箱：'); if(!email) return; const pass=prompt('密码（首次自动注册）：'); if(!pass) return;
-    try{ await auth.signInWithEmailAndPassword(email, pass);}catch(e){ if(e.code==="auth/user-not-found"){ await auth.createUserWithEmailAndPassword(email, pass);} else alert('邮箱登录失败：'+e.message);} };
-  $('#btnLogout').onclick=()=>auth.signOut();
+    // 初始化
+    function init() {
+      setupEventListeners();
+      setupAuthStateListener();
+    }
 
-  auth.onAuthStateChanged(async user=>{
-    $('#btnLogout').classList.toggle('hidden', !user);
-    $('#btnGitHub').classList.toggle('hidden', !!user);
-    $('#btnEmail').classList.toggle('hidden', !!user);
-    $('#who').textContent = user? (user.displayName||user.email||user.uid) : '';
-    const isAdmin = !!user && ADMIN_UIDS.includes(user.uid);
-    $('#editor').classList.toggle('hidden', !isAdmin);
-    $('#mine').classList.toggle('hidden', !isAdmin);
-    $('#openCreate').classList.toggle('hidden', !isAdmin);
-    if(isAdmin) startMine(user.uid);
-  });
+    // 设置事件监听器
+    function setupEventListeners() {
+      $('#github-login').addEventListener('click', handleGitHubLogin);
+      $('#email-login-form').addEventListener('submit', handleEmailLogin);
+      authBtn.addEventListener('click', handleAuthButtonClick);
+      newPostFab.addEventListener('click', createNewPost);
+    }
 
-  $('#openCreate').onclick=()=>{ $('#title').value=''; $('#tags').value=''; $('#content').value=''; document.getElementById('title').focus(); window.scrollTo({top:0,behavior:'smooth'}); };
-
-  $('#btnUploadImg').onclick = async()=>{
-    const f=$('#imgFile').files[0]; if(!f) return alert('请选择图片');
-    const user=auth.currentUser; if(!user) return alert('请先登录');
-    const url = await uploadToCloudinary(f, `uploads/${user.uid}`);
-    const ta=$('#content'); ta.value += `\n<p><img src="${url}" alt=""/></p>\n`;
-    $('#imgMsg').textContent='已上传并插入链接'; setTimeout(()=>$('#imgMsg').textContent='',1500);
-  };
-
-  $('#btnDraft').onclick = ()=>save('draft');
-  $('#btnPublish').onclick = ()=>save('published');
-  $('#btnClear').onclick = ()=>{ $('#title').value=''; $('#tags').value=''; $('#content').value=''; };
-
-  async function save(status){
-    const user=auth.currentUser; if(!user) return;
-    const title=$('#title').value.trim(); const content=$('#content').value.trim();
-    const tags=$('#tags').value.split(',').map(s=>s.trim()).filter(Boolean);
-    if(!title||!content) return alert('标题与正文必填');
-    const doc={ title, content, tags, status, authorId:user.uid,
-      createdAt:firebase.firestore.FieldValue.serverTimestamp(),
-      updatedAt:firebase.firestore.FieldValue.serverTimestamp() };
-    await db.collection('posts').add(doc);
-    $('#editMsg').textContent = status==='published'? '已发布' : '草稿已保存';
-    setTimeout(()=>$('#editMsg').textContent='',1500);
-    $('#title').value=''; $('#tags').value=''; $('#content').value='';
-  }
-
-  function startMine(uid){
-    db.collection('posts').where('authorId','==',uid).orderBy('createdAt','desc').onSnapshot(snap=>{
-      const box=$('#list'); box.innerHTML='';
-      snap.forEach(doc=>{
-        const p=doc.data(); const id=doc.id;
-        const row=document.createElement('div'); row.className='item';
-        row.innerHTML=`<div><b>${escapeHtml(p.title||'(无标题)')}</b> <span class="muted">· ${p.status||'draft'}</span></div>`;
-        const r=document.createElement('div'); r.className='right';
-        r.append(
-          btn('发布','ok',()=>db.collection('posts').doc(id).set({status:'published',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})),
-          btn('撤稿','warn',()=>db.collection('posts').doc(id).set({status:'draft',updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true})),
-          btn('删除','err',()=>confirm('确认删除？')&&db.collection('posts').doc(id).delete())
-        );
-        row.append(r); box.append(row);
+    // 设置认证状态监听
+    function setupAuthStateListener() {
+      onAuthChange(async (user) => {
+        currentUser = user;
+        await updateUI();
+        if (user && isAdmin(user)) {
+          await loadPosts();
+        }
       });
-    });
-  }
-  function btn(text,cls,fn){ const b=document.createElement('button'); b.textContent=text; if(cls) b.classList.add(cls); b.onclick=fn; return b; }
-  function escapeHtml(s){return (s||'').replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+    }
 
-  async function uploadToCloudinary(file, folder){
-    const form=new FormData(); form.append('file',file); form.append('upload_preset',CLOUDINARY.unsignedPreset); if(folder) form.append('folder',folder);
-    const res=await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY.cloudName}/upload`,{method:'POST',body:form});
-    const data=await res.json(); if(!res.ok||!data.secure_url) throw new Error(data.error?.message||'上传失败');
-    return data.secure_url;
-  }
+    // 更新UI状态
+    async function updateUI() {
+      if (currentUser && isAdmin(currentUser)) {
+        loginSection.style.display = 'none';
+        editorSection.style.display = 'block';
+        postsSection.style.display = 'block';
+        newPostFab.style.display = 'block';
+        authBtn.textContent = '登出';
+      } else {
+        loginSection.style.display = 'block';
+        editorSection.style.display = 'none';
+        postsSection.style.display = 'none';
+        newPostFab.style.display = 'none';
+        authBtn.textContent = '登录';
+      }
+    }
+
+    // 认证处理
+    async function handleGitHubLogin() {
+      try {
+        await signInWithGitHub();
+      } catch (error) {
+        showError('login-error', error.message);
+      }
+    }
+
+    async function handleEmailLogin(e) {
+      e.preventDefault();
+      const email = $('#email').value;
+      const password = $('#password').value;
+      
+      try {
+        await signInWithEmail(email, password);
+      } catch (error) {
+        showError('login-error', error.message);
+      }
+    }
+
+    function handleAuthButtonClick() {
+      if (currentUser) {
+        signOut();
+      } else {
+        loginSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function createNewPost() {
+      currentPost = null;
+      $('#editor-title').textContent = '新建文章';
+      editorSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 文章列表管理
+    async function loadPosts() {
+      try {
+        posts = await listMyPosts();
+        renderPosts();
+      } catch (error) {
+        console.error('加载文章列表失败:', error);
+        showToast('加载文章列表失败: ' + error.message, 'error');
+      }
+    }
+
+    function renderPosts() {
+      const container = $('#posts-list');
+      
+      if (posts.length === 0) {
+        container.innerHTML = '<div class="empty-state">暂无文章</div>';
+        return;
+      }
+      
+      container.innerHTML = posts.map(post => `
+        <div class="post-item">
+          <div class="post-info">
+            <h3>${post.title || '无标题'}</h3>
+            <p class="post-meta">
+              <span class="status-badge status-${post.status}">${post.status === 'published' ? '已发布' : '草稿'}</span>
+              <span>${formatDate(post.updatedAt || post.createdAt)}</span>
+            </p>
+          </div>
+          <div class="post-actions">
+            <button onclick="window.editPost('${post.id}')" class="btn btn-outline btn-sm">编辑</button>
+            ${post.status === 'draft' 
+              ? `<button onclick="window.publishPostAction('${post.id}')" class="btn btn-primary btn-sm">发布</button>`
+              : `<button onclick="window.unpublishPostAction('${post.id}')" class="btn btn-secondary btn-sm">撤稿</button>`
+            }
+            <button onclick="window.deletePostAction('${post.id}')" class="btn btn-danger btn-sm">删除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 工具函数
+    function showError(elementId, message) {
+      const element = $(`#${elementId}`);
+      element.textContent = message;
+      element.style.display = 'block';
+    }
+
+    // 全局函数
+    window.editPost = (postId) => {
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        currentPost = post;
+        $('#editor-title').textContent = '编辑文章';
+        editorSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+
+    window.publishPostAction = async (postId) => {
+      try {
+        await publishPost(postId);
+        await loadPosts();
+        showToast('文章已发布！', 'success');
+      } catch (error) {
+        showToast('发布失败: ' + error.message, 'error');
+      }
+    };
+
+    window.unpublishPostAction = async (postId) => {
+      try {
+        await unpublishPost(postId);
+        await loadPosts();
+        showToast('文章已撤稿！', 'success');
+      } catch (error) {
+        showToast('撤稿失败: ' + error.message, 'error');
+      }
+    };
+
+    window.deletePostAction = async (postId) => {
+      if (!confirm('确定要删除这篇文章吗？此操作不可恢复！')) return;
+      
+      try {
+        await deletePost(postId);
+        await loadPosts();
+        showToast('文章已删除！', 'success');
+      } catch (error) {
+        showToast('删除失败: ' + error.message, 'error');
+      }
+    };
+
+    // 启动应用
+    init();
   </script>
 </body>
 </html>
