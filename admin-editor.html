@@ -114,16 +114,19 @@
   <script>
   // 1) 替换为你的 Firebase 配置
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT",
-    appId: "YOUR_APP_ID",
+    apiKey: "AIzaSyBR1V5u3zvZIQ-_7jNl8WfdzEmHsuB8vqo",
+    authDomain: "project-9037683069333256481.firebaseapp.com",
+    projectId: "project-9037683069333256481",
+    storageBucket: "project-9037683069333256481.firebasestorage.app",
+    messagingSenderId: "256096740039",
+    appId: "1:256096740039:web:875a84e72fb0858354d4e2",
+    measurementId: "G-K4V7F81R9W"
   };
   // 哪些 UID 拥有发布权限（此页不强制，但会在导航提示）
-  const ADMIN_UIDS = ["YOUR_UID"];
+  const ADMIN_UIDS = ["SjLJvvCJciUyhwWR6vaJnqQXUpx2"];
 
   // 2) Cloudinary 不用绑卡：填写你的 cloudName 与 unsigned preset 名
-  const CLOUDINARY = { cloudName: "YOUR_CLOUD_NAME", unsignedPreset: "YOUR_UNSIGNED_PRESET" };
+  const CLOUDINARY = { cloudName: "blog_unsigned", unsignedPreset: "blog_unsigned" };
 
   // 3) 初始化
   firebase.initializeApp(firebaseConfig);
